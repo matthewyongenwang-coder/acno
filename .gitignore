@@ -1,0 +1,36 @@
+# Data: never commit dataset images. They contain real people's faces and
+# are licensed for research use, not redistribution. Use scripts/download_data.py.
+data/*
+!data/README.md
+
+# Trained model weights (large binaries, use releases or cloud storage if needed)
+models/
+*.pt
+*.pth
+*.h5
+*.onnx
+*.keras
+
+# Secrets and credentials: never commit these
+.env
+.env.*
+kaggle.json
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Never commit real user photos, including team selfies used for testing
+test_photos/
+selfies/
