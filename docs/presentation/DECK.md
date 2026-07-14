@@ -97,6 +97,13 @@ On the slide:
 - One line with the real numbers: "acne type: 59% across 5 types / spot detector:
   0.67 mAP / skin type: 43%"
 
+Do NOT use the YOLO training graphs in runs/detect/results/acne_yolo/ (results.png,
+BoxPR_curve.png, confusion_matrix*.png). They are from a 2-epoch smoke-test run and
+read mAP ~0.002, which contradicts the real 0.666 metric. Only
+results/yolo_sample_detections.png reflects the actual trained model. If a real YOLO
+training curve is ever wanted on the slide, re-run the full training to regenerate
+these files first.
+
 Speaker notes:
 "These are results on faces the models never saw during training. The left chart is
 the acne model learning: accuracy climbs and loss falls epoch by epoch, and the kink
