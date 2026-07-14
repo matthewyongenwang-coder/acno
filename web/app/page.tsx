@@ -76,9 +76,9 @@ function AdviceSection({ report }: { report: Report }) {
             {state.advice.encouragement}
           </div>
           <p className="sub" style={{ marginBottom: "1rem" }}>
-            Written by Claude from your scan results. Only the numbers above were
-            shared, never your photo. Product suggestions are ideas to research,
-            not medical advice.
+            Written by an AI model from your scan results. Only the numbers above
+            were shared, never your photo. Product suggestions are ideas to
+            research, not medical advice.
           </p>
         </>
       )}
