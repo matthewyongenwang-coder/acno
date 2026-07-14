@@ -34,34 +34,45 @@ not hardcoded, so non-coders on the team can edit advice text.
 - [x] Data verification (scripts/verify_data.py)
 - [x] Data card with licenses and risks (docs/DATASETS.md)
 
-### Phase 1: Baseline models (NEXT)
+### Phase 1: Baseline models (notebook DONE, real training run pending)
 
-- [ ] Notebook or script: fine-tune MobileNetV2 on skin_type, report accuracy + confusion matrix
-- [ ] Same for acne_type (watch the Whiteheads class imbalance, use class weights)
-- [ ] Train YOLOv8n on acne_yolo (ultralytics package), report mAP and sample detections
-- [ ] Save all metrics/plots to a results/ folder for Alan's Results + Graphs section
-- Target: something that runs end to end, even if accuracy is mediocre
+All three models live in one notebook, notebooks/Acno.ipynb, written to run top to
+bottom on a Colab GPU. It has been smoke-tested end to end locally in quick-test mode.
+What remains is the real training run (Runtime > Run all on a T4, roughly 30 to 45
+minutes), then dropping the downloaded weights into models/.
 
-### Phase 2: Inference pipeline
+- [x] Notebook: fine-tune MobileNetV2 on skin_type, report accuracy + confusion matrix
+- [x] Same for acne_type (Whiteheads class imbalance handled with class weights)
+- [x] Train YOLOv8n on acne_yolo (ultralytics package), report mAP and sample detections
+- [x] Save all metrics/plots to a results/ folder for Alan's Results + Graphs section
+      (results/ is gitignored because sample charts contain dataset faces)
+- [ ] Run the real (non quick-test) training on Colab GPU and bring weights into models/
 
-- [ ] `src/pipeline.py`: image path in, JSON report out (all three models)
-- [ ] Face detection/crop preprocessing step (mediapipe or opencv haar cascade)
-- [ ] Severity mapping from lesion count (document thresholds in docs/)
-- [ ] Recommendation rules table (skin type x severity -> guide text)
+### Phase 2: Inference pipeline (DONE)
 
-### Phase 3: Demo app (Matthew owns the demo)
+- [x] `src/pipeline.py`: image path in, JSON report out (all three models)
+- [x] Face detection/crop preprocessing step (opencv haar cascade; opencv pinned
+      below 5 because OpenCV 5 removed that API)
+- [x] Severity mapping from lesion count (src/severity.py, thresholds documented there
+      and in the notebook)
+- [x] Recommendation rules table (data/guide_rules.csv and data/acne_type_info.csv,
+      plain text files committed to git so non-coders can edit the advice)
 
-- [ ] Streamlit app (same stack the team knows from the Moneyball project): upload or
-      webcam photo -> report page
-- [ ] Annotated image with detected lesions (YOLO boxes)
-- [ ] Plain-English explanations next to every term
-- [ ] Disclaimer on every report: not medical advice, see a dermatologist for severe acne
+### Phase 3: Demo app (DONE, deployment pending)
+
+- [x] Streamlit app (app/app.py): upload or webcam photo -> report page
+- [x] Annotated image with detected lesions (YOLO boxes)
+- [x] Plain-English explanations next to every term
+- [x] Disclaimer on every report: not medical advice, see a dermatologist for severe acne
+- [ ] Deploy (Streamlit Community Cloud or Hugging Face Spaces; needs an account)
+
+Run it locally: `streamlit run app/app.py` from the repo root, with weights in models/.
 
 ### Phase 4: Evaluation and fairness
 
-- [ ] Confusion matrices and per-class precision/recall for both classifiers
+- [x] Confusion matrices and per-class precision/recall for both classifiers (in the notebook)
 - [ ] Test on diverse skin tones; document where the model fails
-- [ ] Grad-CAM visualizations for explainability slides
+- [x] Grad-CAM visualizations for explainability slides (in the notebook)
 
 ## Security and privacy rules (non-negotiable)
 

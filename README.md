@@ -31,10 +31,30 @@ python scripts/verify_data.py     # confirms everything downloaded correctly
 Datasets are never stored in this repo (privacy and licensing: they contain photos of
 real people's faces). See docs/DATASETS.md for sources, labels, and known risks.
 
+## Training the models
+
+Everything trains in one notebook: [notebooks/Acno.ipynb](notebooks/Acno.ipynb).
+Open it in Google Colab, switch the runtime to a GPU, and Run all. It downloads the
+data itself, trains all three models, saves every chart, and ends with a download of
+the trained weights. Unzip those into the repo root so `models/` has
+`skin_type.keras`, `acne_type.keras`, and `acne_yolo.pt`.
+
+## Running the app
+
+With weights in `models/`:
+
+```bash
+streamlit run app/app.py
+```
+
+Photos are analyzed in memory and never saved. Every report carries the disclaimer:
+educational guidance, not medical diagnosis.
+
 ## Project docs
 
 - [docs/PLAN.md](docs/PLAN.md): architecture, roadmap, and security rules
 - [docs/DATASETS.md](docs/DATASETS.md): data card for all three datasets
+- [docs/presentation/DECK.md](docs/presentation/DECK.md): slide-by-slide presentation plan
 - [CLAUDE.md](CLAUDE.md): context for AI-assisted development sessions
 
 ## Team

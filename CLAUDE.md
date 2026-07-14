@@ -13,8 +13,16 @@ skincare guide. Motto: "Scan smarter. Skin clearer."
 
 ## Current status (update this section as work lands)
 
-Phase 0 (repo + data pipeline) is done. Next up is Phase 1: baseline models
-(see the checklist in docs/PLAN.md).
+Phases 0 through 3 are built: data pipeline, the full training notebook
+(notebooks/Acno.ipynb, one notebook for all three models, smoke-tested locally),
+the inference pipeline (src/), and the Streamlit demo app (app/app.py).
+
+Still open:
+1. Real training run on Colab GPU (the notebook is ready, someone presses Run all),
+   then put the downloaded weights in models/.
+2. Deploy the app (Streamlit Community Cloud or Hugging Face Spaces).
+3. Presentation redesign: follow docs/presentation/DECK.md and APPLY.md.
+4. Fairness testing on diverse skin tones (Phase 4 in docs/PLAN.md).
 
 ## Hard rules
 
