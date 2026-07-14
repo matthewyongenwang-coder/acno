@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "acno-app",
+      "runtimeExecutable": ".venv/bin/streamlit",
+      "runtimeArgs": ["run", "app/app.py", "--server.port", "8601", "--server.headless", "true"],
+      "port": 8601
+    }
+  ]
+}
