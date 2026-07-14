@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.111.0",
     "next": "^15.3.0",
     "onnxruntime-web": "^1.20.0",
+    "openai": "^6.46.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

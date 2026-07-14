@@ -1,15 +1,20 @@
 // AI-written skin analysis and product suggestions.
 //
 // The browser sends only the scan RESULTS (skin type, acne type, spot count,
-// severity) - never the photo. Claude writes a personalized explanation and
-// suggests over-the-counter product types. If no ANTHROPIC_API_KEY is
-// configured, the route returns 503 and the app quietly falls back to its
-// built-in rules-based routine.
+// severity) - never the photo. The AI writes a personalized explanation and
+// suggests over-the-counter product types.
+//
+// Works with either provider, whichever key is configured:
+//   ANTHROPIC_API_KEY -> Claude (claude-opus-4-8)
+//   OPENAI_API_KEY    -> OpenAI (gpt-4o-mini)
+// With neither key set, the route returns 503 and the app quietly falls back
+// to its built-in rules-based routine.
 
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
-export const maxDuration = 60; // Claude can take a moment to write
+export const maxDuration = 60; // the model can take a moment to write
 
 const SKIN_TYPES = new Set(["dry", "normal", "oily"]);
 const ACNE_TYPES = new Set(["Blackheads", "Cyst", "Papules", "Pustules", "Whiteheads"]);
@@ -52,11 +57,13 @@ const OUTPUT_SCHEMA = {
         properties: {
           category: {
             type: "string",
-            description: "Product category, e.g. Cleanser, Moisturizer, Serum, Toner, Sunscreen, Spot treatment",
+            description:
+              "Product category, e.g. Cleanser, Moisturizer, Serum, Toner, Sunscreen, Spot treatment",
           },
           lookFor: {
             type: "string",
-            description: "The key ingredient or label to look for, with a plain explanation of what it does",
+            description:
+              "The key ingredient or label to look for, with a plain explanation of what it does",
           },
           example: {
             type: "string",
@@ -73,7 +80,8 @@ const OUTPUT_SCHEMA = {
     },
     encouragement: {
       type: "string",
-      description: "One or two warm closing sentences. If severity is severe or acne type is cystic, this must center seeing a dermatologist.",
+      description:
+        "One or two warm closing sentences. If severity is severe or acne type is cystic, this must center seeing a dermatologist.",
     },
   },
   required: ["analysis", "products", "encouragement"],
@@ -114,12 +122,67 @@ function validate(body: unknown): AdviceRequest | null {
   };
 }
 
+function scanPrompt(scan: AdviceRequest): string {
+  return (
+    `Scan results for this user:\n` +
+    `Skin type: ${scan.skinType} (${Math.round(scan.skinTypeConfidence * 100)}% confidence)\n` +
+    `Main acne type detected: ${scan.acneType} (${Math.round(scan.acneTypeConfidence * 100)}% confidence)\n` +
+    `Individual spots found: ${scan.lesionCount}\n` +
+    `Severity level: ${scan.severity}\n\n` +
+    `Write their personalized report.`
+  );
+}
+
+async function adviceFromClaude(scan: AdviceRequest): Promise<AdviceResponse | null> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: "claude-opus-4-8",
+    max_tokens: 2048,
+    thinking: { type: "adaptive" },
+    system: [
+      { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+    ],
+    output_config: {
+      format: { type: "json_schema", schema: OUTPUT_SCHEMA },
+    },
+    messages: [{ role: "user", content: scanPrompt(scan) }],
+  });
+
+  if (response.stop_reason === "refusal") return null;
+  const text = response.content.find((block) => block.type === "text");
+  if (!text || text.type !== "text") return null;
+  return JSON.parse(text.text) as AdviceResponse;
+}
+
+async function adviceFromOpenAI(scan: AdviceRequest): Promise<AdviceResponse | null> {
+  const client = new OpenAI();
+  const response = await client.chat.completions.create({
+    model: "gpt-4o-mini",
+    max_completion_tokens: 2048,
+    response_format: {
+      type: "json_schema",
+      json_schema: { name: "skin_advice", strict: true, schema: OUTPUT_SCHEMA },
+    },
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: scanPrompt(scan) },
+    ],
+  });
+
+  const message = response.choices[0]?.message;
+  if (!message || message.refusal || !message.content) return null;
+  return JSON.parse(message.content) as AdviceResponse;
+}
+
 export async function POST(request: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "ai_not_configured" },
-      { status: 503 },
-    );
+  const provider = process.env.ANTHROPIC_API_KEY
+    ? adviceFromClaude
+    : process.env.OPENAI_API_KEY
+      ? adviceFromOpenAI
+      : null;
+
+  if (!provider) {
+    return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
   }
 
   const scan = validate(await request.json().catch(() => null));
@@ -127,55 +190,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_scan" }, { status: 400 });
   }
 
-  const client = new Anthropic();
-
   try {
-    const response = await client.messages.create({
-      model: "claude-opus-4-8",
-      max_tokens: 2048,
-      thinking: { type: "adaptive" },
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      output_config: {
-        format: { type: "json_schema", schema: OUTPUT_SCHEMA },
-      },
-      messages: [
-        {
-          role: "user",
-          content:
-            `Scan results for this user:\n` +
-            `Skin type: ${scan.skinType} (${Math.round(scan.skinTypeConfidence * 100)}% confidence)\n` +
-            `Main acne type detected: ${scan.acneType} (${Math.round(scan.acneTypeConfidence * 100)}% confidence)\n` +
-            `Individual spots found: ${scan.lesionCount}\n` +
-            `Severity level: ${scan.severity}\n\n` +
-            `Write their personalized report.`,
-        },
-      ],
-    });
-
-    if (response.stop_reason === "refusal") {
+    const advice = await provider(scan);
+    if (!advice) {
       return NextResponse.json({ error: "ai_declined" }, { status: 502 });
     }
-
-    const text = response.content.find((block) => block.type === "text");
-    if (!text || text.type !== "text") {
-      return NextResponse.json({ error: "ai_empty" }, { status: 502 });
-    }
-    const advice: AdviceResponse = JSON.parse(text.text);
     return NextResponse.json(advice);
   } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) {
-      return NextResponse.json({ error: "ai_busy" }, { status: 429 });
-    }
-    if (error instanceof Anthropic.APIError) {
-      console.error("advice route:", error.status, error.message);
-      return NextResponse.json({ error: "ai_error" }, { status: 502 });
-    }
     console.error("advice route:", error);
     return NextResponse.json({ error: "ai_error" }, { status: 502 });
   }
