@@ -11,15 +11,15 @@ data/*
 results/
 runs/
 
-# Trained model weights (large binaries, use releases or cloud storage if needed)
-models/
+# Trained model weights (large binaries, use releases or cloud storage if needed).
+# Only the repo-root models/ folder: the browser app ships its converted ONNX
+# copies in web/public/models/, which Vercel needs in git.
+/models/
 *.pt
 *.pth
 *.h5
 *.onnx
 *.keras
-# Exception: the browser app ships the ONNX models as static assets, and Vercel
-# builds straight from git, so these are committed on purpose
 !web/public/models/*.onnx
 
 # Secrets and credentials: never commit these
