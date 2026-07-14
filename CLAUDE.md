@@ -13,16 +13,20 @@ skincare guide. Motto: "Scan smarter. Skin clearer."
 
 ## Current status (update this section as work lands)
 
-Phases 0 through 3 are built: data pipeline, the full training notebook
-(notebooks/Acno.ipynb, one notebook for all three models, smoke-tested locally),
-the inference pipeline (src/), and the Streamlit demo app (app/app.py).
+Phases 0 through 3 are built and the models are trained (Colab run done, weights in
+models/, gitignored). The app is a Next.js site in web/ running all three models in
+the browser via onnxruntime-web; the ONNX files are committed at web/public/models/
+(converted and parity-checked by scripts/convert_models.py). The earlier Streamlit
+app was removed in favor of this.
+
+Test metrics (held-out test sets): acne_type 59.3% accuracy (5 classes), lesion
+detector mAP50 0.666, skin_type 42.5% (noisy dataset, overfits; honest limitation).
 
 Still open:
-1. Real training run on Colab GPU (the notebook is ready, someone presses Run all),
-   then put the downloaded weights in models/.
-2. Deploy the app (Streamlit Community Cloud or Hugging Face Spaces).
-3. Presentation redesign: follow docs/presentation/DECK.md and APPLY.md.
-4. Fairness testing on diverse skin tones (Phase 4 in docs/PLAN.md).
+1. Connect the repo to Vercel (Root Directory: web) and publish.
+2. Presentation redesign: follow docs/presentation/DECK.md and APPLY.md.
+3. Fairness testing on diverse skin tones (Phase 4 in docs/PLAN.md).
+4. Optional: improve the skin_type model (stronger regularization or backbone).
 
 ## Hard rules
 
@@ -36,11 +40,12 @@ Still open:
 
 ## Layout
 
-- scripts/ - one-off utilities (data download, verification)
-- src/ - reusable pipeline code (Phase 2+)
-- notebooks/ - training/exploration notebooks (Phase 1+)
-- docs/ - plan, data card
-- data/, models/ - gitignored artifacts
+- scripts/ - one-off utilities (data download, verification, ONNX conversion)
+- src/ - Python inference pipeline (mirrors the browser app, used for verification)
+- notebooks/ - the training notebook
+- web/ - the Next.js app (browser-side inference, deploys on Vercel)
+- docs/ - plan, data card, presentation redesign
+- data/, models/, results/ - gitignored artifacts (except the two advice CSVs in data/)
 
 ## Conventions
 

@@ -41,14 +41,36 @@ the trained weights. Unzip those into the repo root so `models/` has
 
 ## Running the app
 
-With weights in `models/`:
+The app is a Next.js site in `web/` that runs all three models directly in the
+browser with onnxruntime-web. There is no backend: the photo is analyzed on the
+user's own device and never uploaded anywhere.
 
 ```bash
-streamlit run app/app.py
+cd web
+npm install
+npm run dev
 ```
 
-Photos are analyzed in memory and never saved. Every report carries the disclaimer:
-educational guidance, not medical diagnosis.
+The ONNX models are committed at `web/public/models/` (converted from the trained
+weights, see below), so the app works straight from a fresh clone.
+
+### Deploying on Vercel
+
+Import the GitHub repo in Vercel and set the project's Root Directory to `web`.
+Everything else is default: Vercel detects Next.js, builds, and serves the models
+as static files.
+
+### Updating the models
+
+After a new training run, convert the fresh weights (this also verifies the ONNX
+outputs match the originals) and commit the updated files:
+
+```bash
+pip install tf2onnx onnx onnxruntime
+python scripts/convert_models.py
+```
+
+Every report carries the disclaimer: educational guidance, not medical diagnosis.
 
 ## Project docs
 

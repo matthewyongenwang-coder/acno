@@ -58,15 +58,22 @@ minutes), then dropping the downloaded weights into models/.
 - [x] Recommendation rules table (data/guide_rules.csv and data/acne_type_info.csv,
       plain text files committed to git so non-coders can edit the advice)
 
-### Phase 3: Demo app (DONE, deployment pending)
+### Phase 3: Web app (DONE, Vercel hookup pending)
 
-- [x] Streamlit app (app/app.py): upload or webcam photo -> report page
-- [x] Annotated image with detected lesions (YOLO boxes)
+The app is a Next.js site in web/ that runs all three models in the browser via
+onnxruntime-web (ONNX files committed at web/public/models/, converted by
+scripts/convert_models.py). No backend at all: the photo never leaves the device,
+which is our privacy rule made literal. An earlier Streamlit version was replaced
+by this so the project deploys on Vercel like the team's other projects.
+
+- [x] Upload or camera photo -> report page
+- [x] Annotated image with detected lesions (YOLO boxes drawn on canvas)
 - [x] Plain-English explanations next to every term
 - [x] Disclaimer on every report: not medical advice, see a dermatologist for severe acne
-- [ ] Deploy (Streamlit Community Cloud or Hugging Face Spaces; needs an account)
+- [x] Browser inference verified to match the Python pipeline (same photo: 33 lesions both ways)
+- [ ] Connect the repo to Vercel (Root Directory setting: web)
 
-Run it locally: `streamlit run app/app.py` from the repo root, with weights in models/.
+Run it locally: `cd web && npm install && npm run dev`.
 
 ### Phase 4: Evaluation and fairness
 
