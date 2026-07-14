@@ -18,6 +18,9 @@ models/
 *.h5
 *.onnx
 *.keras
+# Exception: the browser app ships the ONNX models as static assets, and Vercel
+# builds straight from git, so these are committed on purpose
+!web/public/models/*.onnx
 
 # Secrets and credentials: never commit these
 .env
