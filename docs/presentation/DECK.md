@@ -91,18 +91,46 @@ counter is YOLOv8-nano, a small fast object detector. All three feed one report.
 On the slide:
 - Banner: "results" (already there)
 - Two charts from the training run, framed in the white box style:
-  - results/skin_type_confusion_matrix.png
+  - results/acne_type_training_curves.png (shows the model actually learning:
+    accuracy climbing, loss falling, across both training stages)
   - results/yolo_sample_detections.png
-- One line: the headline accuracy numbers, filled in after the real Colab training
-  run, in the form: "skin type: X% / acne type: X% / spot detection: X mAP"
+- One line with the real numbers: "acne type: 59% across 5 types / spot detector:
+  0.67 mAP / skin type: 43%"
 
-Speaker notes (fill numbers after training):
-"On faces the models never saw during training: the confusion matrix on the left
-shows where the skin type model is right and where it confuses classes; the diagonal
-is correct answers. On the right, the spot detector marks every lesion it found;
-the box count gives the severity grade. Say what is honestly weak too: which classes
-still get confused and why, class imbalance, small dataset. Judges trust teams who
-know their model's limits."
+Speaker notes:
+"These are results on faces the models never saw during training. The left chart is
+the acne model learning: accuracy climbs and loss falls epoch by epoch, and the kink
+in the middle is where we unfroze the backbone for fine tuning. It reached 59 percent
+across five acne types, three times better than guessing, and the rarest class,
+whiteheads, gets caught 98 percent of the time thanks to class weighting. On the
+right, the spot detector marks every lesion it found with 0.67 mAP, and the box
+count gives the severity grade. Be honest about the weak one: skin type only reached
+43 percent because that dataset's labels are subjective and noisy, and the model
+overfit. That taught us more than the wins did."
+
+## Slide 5b: what broke (Alan or Tanner) - add a new page right after results
+
+On the slide:
+- Banner: "what broke on the way"
+- Three short lines, generous spacing:
+  - "rare classes got ignored -> we made mistakes on them cost more"
+  - "one model memorized instead of learning -> we caught it in the graphs"
+  - "a library update deleted our face detector -> we pinned the version"
+- Visual: results/skin_type_training_curves.png, framed in the white box style
+  (this is the graph that exposed the overfitting: training accuracy climbing
+  while validation stays flat)
+
+Speaker notes:
+"Three real problems, three fixes. First, class imbalance: whiteheads had four times
+fewer photos than other acne types, so early models just ignored them. We fixed it
+with class weights, which make a mistake on a rare class cost more during training.
+Second, overfitting: this graph is our skin type model memorizing. The blue training
+line climbs to 64 percent while the orange validation line stays flat around 38.
+The graph told us the problem was the data, not the architecture. Third, the day we
+built the app, a new version of our image library removed the face detection function
+we depended on. Everything broke. One line pinning the older version fixed it, and it
+taught us why real projects lock their dependency versions. Debugging was half the
+project, and honestly, half the learning."
 
 ## Slide 6: future application (Tanner)
 

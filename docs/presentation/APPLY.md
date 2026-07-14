@@ -18,7 +18,8 @@ This file is the checklist for actually doing it in Canva.
 | 2 background | Travis | Replace the 9 bullets with the 3 phrases + 1 stat from DECK.md. Move the sentences into speaker notes. |
 | 3 dataset | Travis + Matthew | Build the 3 number cards. Add results/class_distribution.png. |
 | 4 models | Alan + Tanner | Build the 3 model cards. Shrink the bullets into speaker notes. |
-| 5 results | Alan | Add the 2 charts + accuracy line once training is done. |
+| 5 results | Alan | Add the 2 charts + the real accuracy line (numbers are in DECK.md). |
+| 5b what broke | Alan or Tanner | New page after results: 3 short lines + the skin type training curves chart. |
 | 6 future | Tanner | Replace the paragraph with the 4 short phrases. |
 | 7 demo | Matthew | Add the app screenshot. Practice the live flow as backup. |
 | 8 conclusion | Erwin | Add the 3 closing lines. |
@@ -49,8 +50,8 @@ into Canva via Notes at the bottom of each page.
 | File in results/ | Use on |
 |---|---|
 | class_distribution.png | slide 3 |
-| skin_type_confusion_matrix.png | slide 5 |
+| acne_type_training_curves.png | slide 5 (the model learning) |
 | yolo_sample_detections.png | slide 5 |
-| acne_type_confusion_matrix.png | backup, if asked about acne model |
-| skin_type_training_curves.png, acne_type_training_curves.png | backup, if asked about training |
+| skin_type_training_curves.png | slide 5b (the overfitting story) |
+| skin_type_confusion_matrix.png, acne_type_confusion_matrix.png | backup, if asked for per-class detail |
 | grad_cam_skin_type.png | great for a "how do we know it works" question |
