@@ -2,12 +2,12 @@
 kagglehub>=1.0
 
 # Training (Phase 1+)
-# Uncomment as needed:
-# tensorflow>=2.16        # or torch/torchvision if the team prefers PyTorch
-# ultralytics>=8.2        # YOLOv8 for lesion detection
-# scikit-learn>=1.4
-# matplotlib>=3.8
+tensorflow>=2.16
+ultralytics>=8.2
+scikit-learn>=1.4
+matplotlib>=3.8
 
 # Demo app (Phase 3)
-# streamlit>=1.35
-# opencv-python-headless>=4.9
+streamlit>=1.35
+# pinned below 5: OpenCV 5 removed the Haar cascade face detector we use
+opencv-python-headless>=4.9,<5

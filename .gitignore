@@ -2,6 +2,14 @@
 # are licensed for research use, not redistribution. Use scripts/download_data.py.
 data/*
 !data/README.md
+# Advice text files are plain text (no images), safe and meant to be committed
+!data/guide_rules.csv
+!data/acne_type_info.csv
+
+# Training outputs: charts and sample images can contain dataset faces, so they
+# stay out of git just like the datasets themselves
+results/
+runs/
 
 # Trained model weights (large binaries, use releases or cloud storage if needed)
 models/
