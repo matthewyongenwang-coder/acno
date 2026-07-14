@@ -22,8 +22,13 @@ app was removed in favor of this.
 Test metrics (held-out test sets): acne_type 59.3% accuracy (5 classes), lesion
 detector mAP50 0.666, skin_type 42.5% (noisy dataset, overfits; honest limitation).
 
+The app also has an AI guide: web/app/api/advice/route.ts sends the scan results
+(never the photo) to Claude (claude-opus-4-8), which writes a personalized analysis
+and OTC product suggestions. Requires the ANTHROPIC_API_KEY environment variable;
+without it the section hides itself and the rules-based routine still shows.
+
 Still open:
-1. Connect the repo to Vercel (Root Directory: web) and publish.
+1. Connect the repo to Vercel (Root Directory: web), add ANTHROPIC_API_KEY, publish.
 2. Presentation redesign: follow docs/presentation/DECK.md and APPLY.md.
 3. Fairness testing on diverse skin tones (Phase 4 in docs/PLAN.md).
 4. Optional: improve the skin_type model (stronger regularization or backbone).

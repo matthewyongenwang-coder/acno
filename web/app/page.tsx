@@ -4,6 +4,87 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { analyze, warmUp, type Report } from "@/lib/analyze";
 import { SEVERITY_TEXT } from "@/lib/guide";
+import type { AdviceResponse } from "@/app/api/advice/route";
+
+type AdviceState =
+  | { kind: "loading" }
+  | { kind: "ready"; advice: AdviceResponse }
+  | { kind: "unavailable" };
+
+function AdviceSection({ report }: { report: Report }) {
+  const [state, setState] = useState<AdviceState>({ kind: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+    setState({ kind: "loading" });
+    fetch("/api/advice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        skinType: report.skinType,
+        skinTypeConfidence: report.skinTypeConfidence,
+        acneType: report.acneType,
+        acneTypeConfidence: report.acneTypeConfidence,
+        lesionCount: report.lesionCount,
+        severity: report.severity,
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        return (await response.json()) as AdviceResponse;
+      })
+      .then((advice) => {
+        if (!cancelled) setState({ kind: "ready", advice });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ kind: "unavailable" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [report]);
+
+  if (state.kind === "unavailable") return null;
+
+  return (
+    <section aria-label="AI skin guide">
+      <h3 className="section-title">What our AI makes of it</h3>
+      {state.kind === "loading" ? (
+        <div className="status">
+          <div className="spinner" aria-hidden />
+          <p className="sub">Writing your personalized guide...</p>
+        </div>
+      ) : (
+        <>
+          <div className="card">
+            <p>{state.advice.analysis}</p>
+          </div>
+          <h3 className="section-title">Products worth looking at</h3>
+          {state.advice.products.map((product) => (
+            <div className="card" key={product.category + product.lookFor}>
+              <div className="label">{product.category}</div>
+              <p>
+                <strong>Look for:</strong> {product.lookFor}
+              </p>
+              <p>
+                <strong>Examples:</strong> {product.example}
+              </p>
+              <p className="sub">{product.howToUse}</p>
+            </div>
+          ))}
+          <div className="note" style={{ marginBottom: "1rem" }}>
+            {state.advice.encouragement}
+          </div>
+          <p className="sub" style={{ marginBottom: "1rem" }}>
+            Written by Claude from your scan results. Only the numbers above were
+            shared, never your photo. Product suggestions are ideas to research,
+            not medical advice.
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
 
 type Stage =
   | { kind: "idle" }
@@ -278,6 +359,8 @@ export default function Home() {
             <h3>Things to avoid</h3>
             <p>{report.routine.avoid}</p>
           </div>
+
+          <AdviceSection report={report} />
 
           {report.seeDermatologist && (
             <div className="derm">

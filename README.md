@@ -54,9 +54,22 @@ npm run dev
 The ONNX models are committed at `web/public/models/` (converted from the trained
 weights, see below), so the app works straight from a fresh clone.
 
+### The AI guide (optional but worth it)
+
+Alongside the three vision models, the app can ask Claude (Anthropic's AI model)
+to write a personalized analysis and suggest over-the-counter products based on
+the scan results. Privacy is preserved: only the scan numbers are sent, never
+the photo. Without an API key the app simply skips this section and falls back
+to its built-in advice.
+
+To enable it, set the environment variable `ANTHROPIC_API_KEY` (get a key at
+console.anthropic.com). Locally, put it in `web/.env.local`; on Vercel, add it
+under Project Settings, Environment Variables.
+
 ### Deploying on Vercel
 
 Import the GitHub repo in Vercel and set the project's Root Directory to `web`.
+Add the `ANTHROPIC_API_KEY` environment variable if you want the AI guide.
 Everything else is default: Vercel detects Next.js, builds, and serves the models
 as static files.
 
