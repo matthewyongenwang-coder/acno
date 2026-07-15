@@ -4,6 +4,14 @@
 // severity) - never the photo. The AI writes a personalized explanation and
 // suggests over-the-counter product types.
 //
+// Two phases:
+//   1. RESEARCH - the model searches the web for current, well-reviewed OTC
+//      products that fit the scan profile, across a range of brands. This is
+//      best effort: if web search is unavailable it is skipped.
+//   2. FORMAT   - the model turns the scan (plus any research it found) into a
+//      structured report, drawing on the researched products so the advice is
+//      varied and not the same two brands every time.
+//
 // Works with either provider, whichever key is configured:
 //   ANTHROPIC_API_KEY -> Claude (claude-opus-4-8)
 //   OPENAI_API_KEY    -> OpenAI (gpt-4o-mini)
@@ -14,7 +22,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
-export const maxDuration = 60; // the model can take a moment to write
+export const maxDuration = 60; // research + writing can take a moment
 
 const SKIN_TYPES = new Set(["dry", "normal", "oily"]);
 const ACNE_TYPES = new Set(["Blackheads", "Cyst", "Papules", "Pustules", "Whiteheads"]);
@@ -33,12 +41,20 @@ const SYSTEM_PROMPT = `You are the friendly skin guide inside Acno, an app built
 
 Rules you never break:
 - You give educational guidance, not medical diagnosis or treatment. Never claim to diagnose.
-- Recommend only widely available over-the-counter products by category and active ingredient (cleansers, moisturizers, serums, toners, sunscreen, spot treatments). Naming well-known drugstore examples is fine. Never recommend prescription products.
+- Recommend only widely available over-the-counter products by category and active ingredient (cleansers, moisturizers, serums, toners, sunscreen, spot treatments). Naming well-known examples is fine. Never recommend prescription products.
 - For severe findings or cystic acne, the first and clearest advice is always to see a dermatologist; products are supportive care only.
 - Keep it kind and calm. Acne is normal, especially during puberty. Never use shaming language.
 - Write for a teenager: plain words, short sentences, explain any skincare term you use.
 - Do not use emojis, decorative symbols, or em dashes.
-- The scan has known limits: it only knows dry/normal/oily (not combination or sensitive), and its confidence can be low. If confidence is under 60 percent, say the reading is uncertain and the advice is general.`;
+- The scan has known limits: it only knows dry/normal/oily (not combination or sensitive), and its confidence can be low. If confidence is under 60 percent, say the reading is uncertain and the advice is general.
+
+Variety matters. Do not default to the same one or two brands (for example Cetaphil and CeraVe) on every report. When you are given research on current products, prefer those specific, well-reviewed options and suggest a range of different brands that genuinely fit this person's skin type and acne type. Match the active ingredient to the concern, not the brand name.`;
+
+const RESEARCH_SYSTEM_PROMPT = `You are a skincare research assistant. You search the web for current, widely available over-the-counter skincare products and report concise findings for another assistant to use.
+
+Focus on: cleansers, moisturizers, serums, toners, sunscreen, and spot treatments that suit the given skin type and acne type, matched by active ingredient (for example salicylic acid, benzoyl peroxide, adapalene, niacinamide, ceramides, azelaic acid).
+
+Give a diverse spread of brands and price points that are genuinely available at drugstores and beauty retailers. Do not limit yourself to the most obvious two brands. Never recommend prescription products. Note any product that is well reviewed and why it fits. Keep the whole brief under 250 words, as plain notes (no emojis, no em dashes).`;
 
 const OUTPUT_SCHEMA = {
   type: "object",
@@ -122,18 +138,76 @@ function validate(body: unknown): AdviceRequest | null {
   };
 }
 
-function scanPrompt(scan: AdviceRequest): string {
+function scanSummary(scan: AdviceRequest): string {
   return (
-    `Scan results for this user:\n` +
     `Skin type: ${scan.skinType} (${Math.round(scan.skinTypeConfidence * 100)}% confidence)\n` +
     `Main acne type detected: ${scan.acneType} (${Math.round(scan.acneTypeConfidence * 100)}% confidence)\n` +
     `Individual spots found: ${scan.lesionCount}\n` +
-    `Severity level: ${scan.severity}\n\n` +
-    `Write their personalized report.`
+    `Severity level: ${scan.severity}`
   );
 }
 
+function researchPrompt(scan: AdviceRequest): string {
+  return (
+    `Research current over-the-counter skincare products for this profile:\n\n` +
+    `${scanSummary(scan)}\n\n` +
+    `Search the web and report a diverse set of specific, well-reviewed products ` +
+    `(different brands, matched by active ingredient) that would suit this skin type ` +
+    `and acne type. Return only your notes.`
+  );
+}
+
+function formatPrompt(scan: AdviceRequest, research: string | null): string {
+  const base =
+    `Scan results for this user:\n${scanSummary(scan)}\n\n`;
+  const withResearch = research
+    ? `Current product research to draw from (prefer these specific, varied options ` +
+      `over defaulting to the same one or two brands):\n${research}\n\n`
+    : "";
+  return `${base}${withResearch}Write their personalized report.`;
+}
+
+// ---- Claude (Anthropic) ----------------------------------------------------
+
+async function researchFromClaude(scan: AdviceRequest): Promise<string | null> {
+  try {
+    const client = new Anthropic();
+    // A web search turn can pause and resume server-side; re-send until it settles.
+    let messages: Anthropic.MessageParam[] = [
+      { role: "user", content: researchPrompt(scan) },
+    ];
+    for (let i = 0; i < 4; i++) {
+      const response = await client.messages.create({
+        model: "claude-opus-4-8",
+        max_tokens: 1536,
+        system: RESEARCH_SYSTEM_PROMPT,
+        // Cast keeps the build stable across SDK versions; the live API accepts
+        // this tool id, and research is best effort so any mismatch degrades safely.
+        tools: [
+          { type: "web_search_20260209", name: "web_search", max_uses: 5 } as unknown as Anthropic.Messages.ToolUnion,
+        ],
+        messages,
+      });
+      if (response.stop_reason === "pause_turn") {
+        messages = [...messages, { role: "assistant", content: response.content }];
+        continue;
+      }
+      const text = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("\n")
+        .trim();
+      return text || null;
+    }
+    return null;
+  } catch (error) {
+    console.error("advice research (claude):", error);
+    return null; // research is best effort - never block the report on it
+  }
+}
+
 async function adviceFromClaude(scan: AdviceRequest): Promise<AdviceResponse | null> {
+  const research = await researchFromClaude(scan);
   const client = new Anthropic();
   const response = await client.messages.create({
     model: "claude-opus-4-8",
@@ -145,7 +219,7 @@ async function adviceFromClaude(scan: AdviceRequest): Promise<AdviceResponse | n
     output_config: {
       format: { type: "json_schema", schema: OUTPUT_SCHEMA },
     },
-    messages: [{ role: "user", content: scanPrompt(scan) }],
+    messages: [{ role: "user", content: formatPrompt(scan, research) }],
   });
 
   if (response.stop_reason === "refusal") return null;
@@ -154,7 +228,29 @@ async function adviceFromClaude(scan: AdviceRequest): Promise<AdviceResponse | n
   return JSON.parse(text.text) as AdviceResponse;
 }
 
+// ---- OpenAI ----------------------------------------------------------------
+
+async function researchFromOpenAI(scan: AdviceRequest): Promise<string | null> {
+  try {
+    const client = new OpenAI();
+    const response = await client.responses.create({
+      model: "gpt-4o-mini",
+      // Tool id has varied across SDK versions (web_search / web_search_preview);
+      // cast keeps the build stable, and research is best effort at runtime.
+      tools: [{ type: "web_search" } as unknown as OpenAI.Responses.Tool],
+      instructions: RESEARCH_SYSTEM_PROMPT,
+      input: researchPrompt(scan),
+    });
+    const text = response.output_text?.trim();
+    return text || null;
+  } catch (error) {
+    console.error("advice research (openai):", error);
+    return null; // best effort
+  }
+}
+
 async function adviceFromOpenAI(scan: AdviceRequest): Promise<AdviceResponse | null> {
+  const research = await researchFromOpenAI(scan);
   const client = new OpenAI();
   const response = await client.chat.completions.create({
     model: "gpt-4o-mini",
@@ -165,7 +261,7 @@ async function adviceFromOpenAI(scan: AdviceRequest): Promise<AdviceResponse | n
     },
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: scanPrompt(scan) },
+      { role: "user", content: formatPrompt(scan, research) },
     ],
   });
 
