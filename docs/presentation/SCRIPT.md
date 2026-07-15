@@ -93,7 +93,7 @@ learns. Here is what we trained it on."*
 
 ---
 
-## Slide 3: dataset
+## Slide 3: dataset (SPLIT: Travis first half, then Matthew second half)
 
 **TRAVIS:**
 "We trained on three public research datasets from Kaggle.
@@ -129,7 +129,7 @@ the models actually do with it."*
 
 ---
 
-## Slide 4: models
+## Slide 4: models (SPLIT: Alan first half, then Tanner second half)
 
 **ALAN:**
 "One photo goes in. Three models look at it.
@@ -187,7 +187,7 @@ taught us more than any of our wins did."
 
 ---
 
-## Slide 5b: what broke
+## Slide 5b: what broke (SPLIT: Alan first half, then Tanner second half)
 
 **ALAN:**
 "Three real problems. Three fixes.

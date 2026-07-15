@@ -65,17 +65,25 @@ On the slide:
 - Small line under the cards: "3 public research datasets. No user photos, ever."
 - Visual: the class distribution chart (results/class_distribution.png)
 
-Speaker notes:
-"We trained on three public Kaggle research datasets: one for skin type with about
-three thousand faces labeled dry, normal or oily; one with over four and a half
-thousand photos labeled by acne type; and one where dermatology researchers drew a
-box around every single acne spot, which is what teaches our severity model. Two
-honest problems we found and dealt with: the classes are imbalanced, for example
-whiteheads has four times fewer photos than the other types, so we weighted the rare
-classes. And these datasets do not document skin tone coverage, which is a known
-weakness in dermatology AI. We flag that openly on our limitations. Privacy matters
-here: these are research photos with permission. Our own users' photos are never
-stored, and never used for training."
+This is a split slide. Travis covers the datasets, then cues Matthew, who covers
+the honesty and privacy. Full word-for-word versions with the exact handoff line
+are in SCRIPT.md and PRESENTATION_TAB.txt.
+
+Speaker notes, Travis (first half, the datasets):
+"We trained on three public Kaggle research datasets. One for skin type, about
+three thousand faces labeled dry, normal or oily. One with over four thousand six
+hundred photos labeled by acne type. And one special one, where dermatology
+researchers drew a box around every single spot on nine hundred twenty seven faces,
+which is what teaches our severity model."
+
+Travis cues Matthew: "Matthew, tell them the part we are not going to hide."
+
+Speaker notes, Matthew (second half, honesty and privacy):
+"Two honest problems. First, the classes are imbalanced, whiteheads has four times
+fewer photos than the other types, so we weighted the rare classes. Second, these
+datasets do not document skin tone coverage, a known weakness in dermatology AI. We
+flag it, we do not hide it. And privacy: these are research photos used with
+permission. Our own users' photos are never stored, and never used for training."
 
 ## Slide 4: models (Alan and Tanner)
 
@@ -88,15 +96,24 @@ On the slide:
 - One line below: "photo in, full skin report out"
 - Visual: the phone-scanning-a-face concept (see APPLY.md for options)
 
-Speaker notes:
+This is a split slide. Alan covers the first two models, then cues Tanner, who
+covers the third model and how they were trained. Full word-for-word versions are
+in SCRIPT.md and PRESENTATION_TAB.txt.
+
+Speaker notes, Alan (first half, the first two models):
 "One photo goes in and three models look at it. The first says whether skin is dry,
 normal or oily. The second identifies the acne type: whiteheads, blackheads, papules,
-pustules or cysts, because each type needs different care. The third does not
-classify at all, it finds and counts every individual spot, and the count maps to a
-severity grade the same way dermatologists grade severity from lesion counts. We did
-not train these from scratch: our datasets are small, so we started from MobileNetV2,
-a network already trained on 1.4 million images, and fine-tuned it on skin. The spot
-counter is YOLOv8-nano, a small fast object detector. All three feed one report."
+pustules or cysts, because each type needs different care."
+
+Alan cues Tanner: "Tanner, the third one is yours."
+
+Speaker notes, Tanner (second half, the third model and training):
+"The third does not classify at all, it finds and counts every individual spot, and
+the count maps to a severity grade the same way dermatologists grade severity from
+lesion counts. We did not train these from scratch: our datasets are small, so we
+started from MobileNetV2, a network already trained on 1.4 million images, and
+fine-tuned it on skin. The spot counter is YOLOv8-nano, a small fast object
+detector. All three feed one report."
 
 ## Slide 5: results (Alan)
 
@@ -143,17 +160,24 @@ On the slide:
   (this is the graph that exposed the overfitting: training accuracy climbing
   while validation stays flat)
 
-Speaker notes:
+Full word-for-word versions with the handoff line are in SCRIPT.md and
+PRESENTATION_TAB.txt.
+
+Speaker notes, Alan (first half, problems one and two):
 "Three real problems, three fixes. First, class imbalance: whiteheads had four times
 fewer photos than other acne types, so early models just ignored them. We fixed it
 with class weights, which make a mistake on a rare class cost more during training.
 Second, overfitting: this graph is our skin type model memorizing. The blue training
-line climbs to 64 percent while the orange validation line stays flat around 38.
-The graph told us the problem was the data, not the architecture. Third, the day we
-built the app, a new version of our image library removed the face detection function
-we depended on. Everything broke. One line pinning the older version fixed it, and it
-taught us why real projects lock their dependency versions. Debugging was half the
-project, and honestly, half the learning."
+line climbs to 64 percent while the orange validation line stays flat around 38. The
+graph told us the problem was the data, not the architecture."
+
+Alan cues Tanner: "Tanner, tell them about the day everything just broke."
+
+Speaker notes, Tanner (second half, problem three, leads into slide 6):
+"Third, the day we built the app, a new version of our image library removed the face
+detection function we depended on. Everything broke. One line pinning the older
+version fixed it, and it taught us why real projects lock their dependency versions.
+Debugging was half the project, and honestly, half the learning."
 
 ## Slide 6: future application (Tanner)
 

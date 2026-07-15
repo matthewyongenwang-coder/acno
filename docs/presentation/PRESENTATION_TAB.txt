@@ -1,0 +1,373 @@
+ACNO  PRESENTATION SCRIPT AND SPEAKING PLAN
+
+Motto: Scan smarter. Skin clearer.
+Team: Travis, Matthew, Alan, Tanner, Erwin
+Estimated length: about 15 minutes at a calm, unhurried pace
+
+This is the word for word script plus who says what. Read your parts out loud
+during rehearsal, not just in your head. That is the only way to catch a
+stumble before the real thing.
+
+
+SPEAKING ORDER AT A GLANCE
+
+   Erwin      Slide 1 open, Slide 8, Slide 9 close        3 turns
+   Travis     Slide 2, Slide 3 first half                 2 turns
+   Matthew    Slide 3 second half, Slide 7, Slide 7b      3 turns
+   Alan       Slide 4 first half, Slide 5, Slide 5b first half     3 turns
+   Tanner     Slide 4 second half, Slide 5b second half, Slide 6   3 turns
+
+Everyone speaks two or three times and nobody is left standing in silence.
+Erwin opens the whole talk and leads the closing motto, so he bookends the
+presentation. The order builds a clear arc: the problem, then proof the work
+is honest, then proof it works, then what broke, then where it goes, then the
+live demo, then why it feels the way it does, then the closing message.
+
+
+THE THREE SPLIT SLIDES (READ THIS FIRST)
+
+Three slides have two speakers each: Slide 3, Slide 4, and Slide 5b. On those
+slides each person has their own separate block below, marked FIRST HALF and
+SECOND HALF. The first speaker finishes their block, says the short cue line
+that hands off, and only then does the second speaker start. Practice the
+handoff a couple of times so it sounds natural and there is no dead air.
+
+
+SAY IT RIGHT (quick pronunciation check before you rehearse)
+
+   MobileNetV2      say  "Mobile Net vee two"
+   YOLOv8-nano      say  "yolo vee eight nano"
+   mAP              say  "em A P"  or  "mean average precision"
+   epoch            say  "EE pock"
+   cystic           say  "SIS tik"
+
+None of these need to be perfect. Just say each one the same way every time so
+it does not sound like a guess.
+
+
+TIMING NOTE
+
+About fifteen minutes at a normal pace. If your slot is shorter, cut from
+Slide 5b first, then trim the stat line on Slide 2 and the fourth bullet on
+Slide 6.
+
+
+
+THE SCRIPT
+
+
+
+SLIDE 1   TITLE
+Speaker: ERWIN
+On screen: the title slide, unchanged. Erwin speaks this line into the quiet
+before the deck even moves, so the room has something to listen to right away.
+
+ERWIN:
+"Getting real advice about your skin usually means booking a dermatologist.
+That takes weeks, it costs money, and for a teenager who is already
+self conscious about their face, it is the last thing they want to do.
+We built Acno so you do not have to wait for any of that."
+
+Erwin hands off:
+"To understand why we built this, here is Travis on what is actually happening
+on your skin."
+
+
+
+SLIDE 2   BACKGROUND
+Speaker: TRAVIS
+On screen:
+   Banner: why acne happens
+   Three phrases in a row: hormones rise / pores clog / skin inflames
+   One large stat: 85 percent of teens get acne
+
+TRAVIS:
+"Puberty raises your hormone levels. Higher hormones mean your skin makes more
+oil. That oil clogs your pores. Bacteria grow inside the clogged pore. The
+result is inflammation, a pimple.
+It shows up mostly on the face, chest, and back. Genetics decides a lot of how
+bad it gets. Stress makes it worse. For most people it fades after puberty.
+About eighty five percent of teens deal with acne at some point. And it hits
+self esteem at the exact age when self esteem is already fragile.
+Real answers usually mean a dermatologist visit. That is expensive, and it is
+slow to book. So most teens just guess."
+
+Travis hands off:
+"Guessing is not good enough. So we built something that does not guess, it
+learns. Here is what we trained it on."
+
+
+
+SLIDE 3   THE DATA
+Two speakers: TRAVIS first half, then MATTHEW second half
+On screen:
+   Banner: the data
+   Three cards: 3,152 faces / skin type,  4,617 photos / acne type,
+      927 faces / every spot labeled
+   Small line: 3 public research datasets. No user photos, ever.
+   Visual: the class distribution chart
+
+TRAVIS  (FIRST HALF, the datasets):
+"We trained on three public research datasets from Kaggle.
+One has about three thousand faces, labeled dry, normal, or oily.
+One has over four thousand six hundred photos, labeled by acne type.
+And one is special. Dermatology researchers drew a box around every single
+spot on nine hundred twenty seven faces. That one teaches our model to count
+severity."
+
+Travis cues Matthew (this is the handoff line, say it clearly):
+"Matthew, tell them the part we are not going to hide."
+
+MATTHEW  (SECOND HALF, the honesty and privacy):
+"Two things we are honest about.
+First, the classes are not balanced. Whiteheads has four times fewer photos
+than the other types, so we weighted the rare classes higher during training.
+Second, none of these datasets document skin tone coverage. That is a known
+weakness in dermatology AI, and we are not going to pretend it is not. We flag
+it as a limitation, we do not hide it.
+And on privacy: these training photos are public research data, used with
+permission. Your photo, the one you scan with Acno, is never stored, and never
+used to train anything."
+
+Matthew hands off:
+"So that is what the models learned from. Here are Alan and Tanner on what the
+models actually do with it."
+
+
+
+SLIDE 4   THREE MODELS, ONE REPORT
+Two speakers: ALAN first half, then TANNER second half
+On screen:
+   Banner: three models, one report
+   Three cards: skin type / dry, normal or oily,   acne type / which kind of spot,
+      spot counter / how severe
+   One line: photo in, full skin report out
+   Visual: the phone scanning a face concept
+
+ALAN  (FIRST HALF, the first two models):
+"One photo goes in. Three models look at it.
+The first model checks your skin type: dry, normal, or oily.
+The second identifies the acne type, whiteheads, blackheads, papules,
+pustules, or cysts, because each one needs different care."
+
+Alan cues Tanner (handoff line):
+"Tanner, the third one is yours."
+
+TANNER  (SECOND HALF, the third model and how we trained them):
+"The third model does not classify anything. It finds and counts every single
+spot on your face. That count becomes a severity grade, the same way real
+dermatologists grade severity by counting lesions.
+We did not train these from scratch. Our datasets are small, so we started
+from MobileNetV2, a network already trained on one point four million images,
+and fine tuned it on skin. The spot counter runs on YOLOv8-nano, a small, fast
+object detector.
+All three feed into one report."
+
+Tanner hands off:
+"So does it actually work? Alan has the numbers."
+
+
+
+SLIDE 5   RESULTS
+Speaker: ALAN
+On screen:
+   Banner: results
+   Two charts: the acne type training curves, and the spot detector sample
+   One line: acne type 59 percent across 5 types / spot detector 0.67 mAP /
+      skin type 43 percent
+
+ALAN:
+"These results are on faces the models never saw during training.
+This chart is the acne model learning. Accuracy climbs, loss falls, epoch by
+epoch. That kink in the middle is where we unfroze the backbone and let it
+fine tune.
+It landed at fifty nine percent accuracy across five acne types. That is about
+three times better than random guessing. And the rarest class, whiteheads,
+gets caught ninety eight percent of the time, thanks to that class weighting
+Matthew mentioned earlier.
+On the right, the spot detector marks every lesion it finds, with a mean
+average precision of point six seven. That box count is what drives the
+severity grade.
+Now the honest one. Skin type only reached forty three percent. That dataset's
+labels are subjective, the model overfit, and honestly, that result taught us
+more than any of our wins did."
+
+Alan hands off:
+"Which brings us to what actually went wrong."
+
+
+
+SLIDE 5b   WHAT BROKE ON THE WAY
+Two speakers: ALAN first half, then TANNER second half
+On screen:
+   Banner: what broke on the way
+   Three short lines:
+      rare classes got ignored, so we made mistakes on them cost more
+      one model memorized instead of learning, we caught it in the graphs
+      a library update deleted our face detector, we pinned the version
+   Visual: the skin type training curves chart (the overfitting story)
+
+ALAN  (FIRST HALF, the first two problems):
+"Three real problems. Three fixes.
+First: class imbalance. Whiteheads had four times fewer photos than the other
+acne types, so early versions of our model just ignored them. We fixed it with
+class weights, a mistake on a rare class now costs the model more during
+training.
+Second: overfitting. This graph is our skin type model memorizing instead of
+learning. The blue training line climbs to sixty four percent. The orange
+validation line stays flat around thirty eight. The graph told us the problem
+was the data, not the model."
+
+Alan cues Tanner (handoff line):
+"Tanner, tell them about the day everything just broke."
+
+TANNER  (SECOND HALF, the third problem):
+"Third: the day we built the app, a library update deleted a function our face
+detector depended on. Everything broke, with no warning.
+One line, pinning the older library version, fixed it. It also taught us why
+real projects lock their dependency versions before it is too late.
+Debugging was half this project. Honestly, it was half the learning too."
+
+Tanner keeps going straight into his next slide:
+"And that debugging is exactly what makes the next part possible. Here is where
+this goes."
+
+
+
+SLIDE 6   WHERE THIS GOES
+Speaker: TANNER
+On screen:
+   Banner: where this goes
+   Four phrases: weekly scans, visible progress / products matched to your skin /
+      severe cases: see a dermatologist / next: eczema and rosacea
+   Visual: the rising stones growth concept
+
+TANNER:
+"Skin care is a consistency problem, not a knowledge problem. So the biggest
+feature we want next is a weekly re scan, a severity trend over time, so you
+can actually see progress instead of guessing.
+Next, product suggestions matched to your specific skin type.
+For severe or cystic cases, a clear nudge toward a real dermatologist, because
+our job is triage, not treatment.
+Streaks and reminders, to keep teens actually consistent.
+And the same scan and classify pipeline can extend to other teen skin
+conditions, eczema, rosacea."
+
+Tanner hands off:
+"Enough talking about it. Matthew is going to show you."
+
+
+
+SLIDE 7   DEMO
+Speaker: MATTHEW
+On screen:
+   Banner: demo
+   One screenshot of the real app report page
+   One line: scan your face, get your guide
+
+MATTHEW:
+"I am going to run this live.
+[Open the app and walk through it on screen.]
+Upload a photo. The app finds the face, and runs all three models.
+It builds a full report: skin type, acne type in plain words, severity with
+every spot marked directly on the photo, and a morning and evening routine.
+That routine text lives in a plain file, not in code, so anyone on our team can
+edit the advice without touching a single line of code.
+Nothing is saved. The photo is processed in memory, and it is gone the moment
+you close the page.
+And every single report ends with the same line: this is educational guidance.
+Not a diagnosis."
+
+Matthew hands off (into his own next slide):
+"So it works. But we also cared a lot about how it feels to use. That part is
+mine too."
+
+
+
+SLIDE 7b   DESIGN
+Speaker: MATTHEW
+On screen:
+   Banner: designed to feel safe, not clinical
+   Three phrases: warm, not white coat / soft edges, no sharp alarms /
+      quiet color, loud only where it matters
+   Visual: a screenshot of the report card, the same screen just shown live
+
+MATTHEW:
+"Acne already comes with enough shame. A lot of teens feel like asking for help
+means walking into a cold, clinical waiting room. So we designed against that,
+on purpose.
+The background is warm cream, not hospital white.
+The accent color is a muted sage green, the color of plants and skin, not the
+alert red most health apps default to.
+Headlines are set in a soft serif font. It reads more like a wellness journal
+than a lab report.
+Every card has rounded corners and a soft shadow, instead of the hard
+rectangles you would see on a medical form.
+And we were deliberate about red. The only red anywhere in this app is the box
+drawn around a spot on your own photo. That is it. So it stays meaningful,
+instead of turning the whole screen into a warning sign.
+Even our most serious message, see a dermatologist, sits in a soft peach box,
+not a red banner. Because we wanted it to read as care. Not an alarm.
+We wanted an app that feels like it is on your side, before it has told you
+anything about your skin at all."
+
+Matthew hands off:
+"And that is really the whole point of this project. Erwin is going to close us
+out."
+
+
+
+SLIDE 8   CONCLUSION
+Speaker: ERWIN
+On screen:
+   Banner: conclusion
+   Three lines: skin answers should not need an appointment /
+      guidance, never diagnosis / scan smarter. skin clearer.
+   Visual: reuse the stones and plant from slide 1 so the deck ends where it began
+
+ERWIN:
+"The problem here was access. Real skin guidance is expensive, it is slow, and
+for a teenager, it is awkward to even ask for.
+Acno gives you an instant, private, first answer, for free.
+Here is what building it actually taught us: the hard part of applied AI was
+never the model architecture. It was the data. It was the class imbalance. It
+was the bias risks. It was knowing exactly what our model cannot tell you.
+We held one line the entire way through this project: guidance, never
+diagnosis. Every severe case still gets pointed to a real dermatologist."
+
+Erwin moves to the final slide.
+
+
+
+SLIDE 9   THANK YOU
+Speaker: ERWIN leads, then the WHOLE TEAM together
+On screen: a plain thank you in the slide 1 style, with the team names strip.
+
+ERWIN, alone:
+"Thank you."
+
+EVERYONE, together, unhurried:
+"Scan smarter. Skin clearer."
+
+Hold for a beat, then open the floor to questions.
+
+
+
+BACKUP: LIKELY QUESTIONS AND WHO TAKES THEM
+
+   How do you know the model works and is not guessing?   Alan
+      Point to the training curves and the held out test numbers. Grad CAM
+      overlays show the model looks at the actual redness, not the background.
+
+   Does it work on darker skin tones?   Matthew
+      Be honest. The datasets do not document skin tone coverage, it is a known
+      weakness in dermatology AI, and fairness testing is on our plan. We do not
+      claim it is solved.
+
+   Is any of this a medical diagnosis?   Erwin
+      No. It is educational guidance, every report says so, and severe cases are
+      always pointed to a real dermatologist.
+
+   What was the hardest part?   Tanner
+      Not the models. The data, the class imbalance, and a dependency update
+      that broke the whole build overnight.
