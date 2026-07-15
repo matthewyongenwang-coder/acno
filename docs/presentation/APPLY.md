@@ -15,15 +15,20 @@ This file is the checklist for actually doing it in Canva.
 
 | Slide | Owner | What to do |
 |---|---|---|
+| 1 title | Erwin (spoken only) | No visual change. Erwin opens with the hook line from DECK.md before the deck moves on. |
 | 2 background | Travis | Replace the 9 bullets with the 3 phrases + 1 stat from DECK.md. Move the sentences into speaker notes. |
 | 3 dataset | Travis + Matthew | Build the 3 number cards. Add results/class_distribution.png. |
 | 4 models | Alan + Tanner | Build the 3 model cards. Shrink the bullets into speaker notes. |
 | 5 results | Alan | Add the 2 charts + the real accuracy line (numbers are in DECK.md). |
-| 5b what broke | Alan or Tanner | New page after results: 3 short lines + the skin type training curves chart. |
+| 5b what broke | Alan + Tanner (split) | New page after results: 3 short lines + the skin type training curves chart. Alan covers the first two lines, Tanner covers the third. |
 | 6 future | Tanner | Replace the paragraph with the 4 short phrases. |
 | 7 demo | Matthew | Add the app screenshot. Practice the live flow as backup. |
+| 7b design | Matthew | New page after demo: 3 short phrases from DECK.md + a screenshot of the report card. |
 | 8 conclusion | Erwin | Add the 3 closing lines. |
-| 9 | anyone | Delete, or make it a "thank you" in slide 1's style. |
+| 9 | Erwin leads, whole team | Keep it as a "thank you" in slide 1's style. Erwin says thank you, then everyone says the motto together. |
+
+Full rehearsal script with every word, every handoff line between speakers, and
+pronunciation notes for the technical terms: docs/presentation/SCRIPT.md.
 
 ## Making it look like slide 1
 

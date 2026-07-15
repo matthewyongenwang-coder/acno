@@ -21,6 +21,18 @@ speaker notes.
   like one set of hands made it.
 - No new colors. Brown, cream, white, and the green of the plants is the whole palette.
 
+## Slide 1: opening line (Erwin, spoken only, slide stays exactly as it is)
+
+No changes to the slide itself. Erwin speaks a short hook before Travis's slide
+even comes up, so the room has something to listen to besides silence while
+slide 1 sits there.
+
+Speaker notes:
+"Getting real advice about your skin usually means booking a dermatologist. That
+takes weeks, it costs money, and for a teenager who is already self-conscious
+about their face, it is the last thing they want to do. We built Acno so you do
+not have to wait for any of that."
+
 ## Slide 2: background (Travis)
 
 Current problem: nine full-sentence bullets and three empty boxes.
@@ -115,7 +127,11 @@ count gives the severity grade. Be honest about the weak one: skin type only rea
 43 percent because that dataset's labels are subjective and noisy, and the model
 overfit. That taught us more than the wins did."
 
-## Slide 5b: what broke (Alan or Tanner) - add a new page right after results
+## Slide 5b: what broke (Alan and Tanner, split) - add a new page right after results
+
+Split down the middle so it is not a solo slide: Alan covers the first two
+lines (they follow straight from his results slide), Tanner covers the third
+(it follows straight into his future slide).
 
 On the slide:
 - Banner: "what broke on the way"
@@ -174,6 +190,31 @@ can edit, because the advice lives in a text file, not in code. Nothing is saved
 the photo is processed in memory and gone when you close the page. Every report ends
 with the same line: this is educational guidance, not a diagnosis."
 
+## Slide 7b: design (Matthew) - new page right after demo
+
+On the slide:
+- Banner: "designed to feel safe, not clinical"
+- Three short phrases, same row layout as slide 2 or slide 4:
+  1. "warm, not white-coat"
+  2. "soft edges, no sharp alarms"
+  3. "quiet color, loud only where it matters"
+- Visual: a screenshot of the scan report card, the same screen just shown live
+  in the demo
+
+Speaker notes:
+"Acne already comes with enough shame. A lot of teens feel like asking for help
+means walking into a cold, clinical waiting room, so we designed against that
+on purpose. The background is warm cream, not hospital white. The accent color
+is a muted sage green, the color of plants and skin, not the alert red most
+health apps default to. Headlines are set in a soft serif font, it reads more
+like a wellness journal than a lab report. Every card has rounded corners and a
+soft shadow instead of the hard rectangles you would see on a medical form. We
+were deliberate about red: the only red anywhere in this app is the box drawn
+around a spot on your own photo, so it stays meaningful instead of turning the
+whole screen into a warning sign. Even our most serious message, see a
+dermatologist, sits in a soft peach box, not a red banner, because we wanted it
+to read as care, not an alarm."
+
 ## Slide 8: conclusion (Erwin)
 
 On the slide:
@@ -192,7 +233,15 @@ data, the class imbalance, the bias risks, and knowing what the model cannot do.
 kept a hard line the whole way: this is guidance, never diagnosis, and severe cases
 always get pointed to a dermatologist. Scan smarter, skin clearer."
 
-## Slide 9
+## Slide 9: thank you (Erwin leads, whole team closes together)
 
-Delete it, or keep it as a plain "thank you" in the slide 1 style with the team
-names strip.
+Keep it as a plain "thank you" in the slide 1 style with the team names strip.
+Erwin says the last solo line, then the whole team says the motto together so
+the presentation ends with everyone speaking, not one person.
+
+Speaker notes:
+Erwin, solo: "Thank you."
+Everyone, together: "Scan smarter. Skin clearer."
+
+See docs/presentation/SCRIPT.md for the full word for word delivery script,
+handoff lines between speakers, and pronunciation notes for the technical terms.
