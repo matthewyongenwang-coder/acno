@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import { Fraunces, Inter } from "next/font/google";
 
 import "./globals.css";
@@ -27,7 +28,18 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
-      <body>{children}</body>
+      <body>
+        <header className="site-header">
+          <Link href="/" className="site-mark">
+            Acno
+          </Link>
+          <nav className="site-nav">
+            <Link href="/">Scan</Link>
+            <Link href="/about">About</Link>
+          </nav>
+        </header>
+        {children}
+      </body>
     </html>
   );
 }
