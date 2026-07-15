@@ -34,8 +34,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Acno
           </Link>
           <nav className="site-nav">
-            <Link href="/">Scan</Link>
-            <Link href="/about">About</Link>
+            <Link href="/">About</Link>
+            <Link href="/scan">Scan</Link>
           </nav>
         </header>
         {children}
