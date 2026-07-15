@@ -14,8 +14,11 @@
 
 import { NextResponse } from "next/server";
 
-const KV_URL = process.env.KV_REST_API_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+// Vercel's KV integration injects KV_REST_API_*; the newer Upstash marketplace
+// integration injects UPSTASH_REDIS_REST_*. Accept either, same REST protocol.
+const KV_URL = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+const KV_TOKEN =
+  process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
 const KEY = "acno:visits";
 
 // People who used Acno before the counter existed (demos, early testers). The
