@@ -130,30 +130,28 @@ function ScanGraphic() {
   );
 }
 
-// A live, privacy-safe count of scans run. Hidden entirely until the counter is
-// configured and returns a number, so the page never shows a lonely "0".
+// A live, privacy-safe usage count. Records this visit (one increment per page
+// load) and shows the running total. Hidden entirely until the counter is
+// configured, so the page never shows a lonely frozen number.
 function ScanCount() {
   const [count, setCount] = useState<number | null>(null);
+  const recorded = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
-    fetch("/api/visits")
+    if (recorded.current) return; // count each visit once, not twice in dev
+    recorded.current = true;
+    fetch("/api/visits", { method: "POST" })
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
-        if (!cancelled && data && typeof data.count === "number") {
-          setCount(data.count);
-        }
+        if (data && typeof data.count === "number") setCount(data.count);
       })
       .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   if (count === null || count <= 0) return null;
   return (
-    <p className="scan-count" data-reveal>
-      <strong>{count.toLocaleString("en-CA")}</strong> scans run privately so far
+    <p className="scan-count">
+      <strong>{count.toLocaleString("en-CA")}</strong> visits so far
     </p>
   );
 }

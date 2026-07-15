@@ -18,6 +18,14 @@ const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 const KEY = "acno:visits";
 
+// People who used Acno before the counter existed (demos, early testers). The
+// stored value counts from zero; we add this so the public number starts here.
+const BASELINE = 20;
+
+function withBaseline(raw: number | null): number | null {
+  return raw === null ? null : raw + BASELINE;
+}
+
 async function command(name: "get" | "incr"): Promise<number | null> {
   if (!KV_URL || !KV_TOKEN) return null;
   try {
@@ -37,9 +45,9 @@ async function command(name: "get" | "incr"): Promise<number | null> {
 }
 
 export async function GET() {
-  return NextResponse.json({ count: await command("get") });
+  return NextResponse.json({ count: withBaseline(await command("get")) });
 }
 
 export async function POST() {
-  return NextResponse.json({ count: await command("incr") });
+  return NextResponse.json({ count: withBaseline(await command("incr")) });
 }
