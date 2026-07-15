@@ -107,6 +107,7 @@ export default function Scan() {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
   const [dragging, setDragging] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
+  const [flashing, setFlashing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -187,12 +188,20 @@ export default function Scan() {
   const capturePhoto = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d")?.drawImage(video, 0, 0);
-    stopCamera();
-    canvas.toBlob((blob) => blob && handleBlob(blob), "image/jpeg", 0.95);
+    // Paint the whole screen pure white first: the front camera reflects the
+    // screen's own light, brightening the face. Wait a beat so the white
+    // actually renders and the camera's auto-exposure settles, then grab the
+    // (now better lit) frame.
+    setFlashing(true);
+    window.setTimeout(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext("2d")?.drawImage(video, 0, 0);
+      stopCamera();
+      setFlashing(false);
+      canvas.toBlob((blob) => blob && handleBlob(blob), "image/jpeg", 0.95);
+    }, 350);
   }, [handleBlob, stopCamera]);
 
   // draw the analyzed photo with lesion boxes
@@ -285,9 +294,28 @@ export default function Scan() {
 
       {tab === "camera" && (
         <div>
+          <div className="note" style={{ marginBottom: "1rem" }}>
+            Good lighting matters. In a dim room the analysis can be inaccurate, so
+            face a window or a lamp. Fit your whole face inside the outline so it
+            fills the frame for the best detection.
+          </div>
           {cameraOn ? (
             <div>
-              <video ref={videoRef} playsInline muted />
+              <div className="camera-frame">
+                <video ref={videoRef} playsInline muted />
+                <div className="face-guide" aria-hidden>
+                  <svg viewBox="0 0 200 260" preserveAspectRatio="xMidYMid meet">
+                    <ellipse className="guide-stroke" cx="100" cy="96" rx="58" ry="74" />
+                    <path className="guide-stroke" d="M20 260 Q100 176 180 260" />
+                    <g className="guide-bracket">
+                      <path d="M18 40 v-12 a10 10 0 0 1 10 -10 h12" />
+                      <path d="M160 18 h12 a10 10 0 0 1 10 10 v12" />
+                      <path d="M18 220 v12 a10 10 0 0 0 10 10 h12" />
+                      <path d="M160 242 h12 a10 10 0 0 0 10 -10 v-12" />
+                    </g>
+                  </svg>
+                </div>
+              </div>
               <p style={{ textAlign: "center", marginTop: "0.8rem" }}>
                 <button className="button" onClick={capturePhoto}>
                   Take the photo
@@ -302,6 +330,8 @@ export default function Scan() {
           )}
         </div>
       )}
+
+      {flashing && <div className="screen-flash" aria-hidden />}
 
       {stage.kind === "analyzing" && (
         <div className="status">
