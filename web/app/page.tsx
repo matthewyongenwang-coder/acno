@@ -411,17 +411,20 @@ export default function Home() {
       </section>
 
       <section className="about-section team" data-reveal>
-        <h2 className="about-h2">Made by five students</h2>
+        <h2 className="about-h2">Made by three students</h2>
         <p className="about-p">
           Acno was built for an Inspirit AI project by a team who wanted the first
           answer about your own skin to be free, private, and honest about its
           limits.
         </p>
         <div className="team-names">
-          {["Travis", "Matthew", "Alan", "Tanner", "Erwin"].map((name) => (
+          {["Matthew", "Travis", "Alan"].map((name) => (
             <span key={name}>{name}</span>
           ))}
         </div>
+        <p className="about-p subtle">
+          With earlier contributions from Tanner and Erwin.
+        </p>
       </section>
 
       <section className="about-closing" data-reveal>
