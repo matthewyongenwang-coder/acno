@@ -90,6 +90,7 @@ Every report carries the disclaimer: educational guidance, not medical diagnosis
 
 - [docs/PLAN.md](docs/PLAN.md): architecture, roadmap, and security rules
 - [docs/DATASETS.md](docs/DATASETS.md): data card for all three datasets
+- [CITATIONS.md](CITATIONS.md): every source we used (datasets, research, libraries, AI, advice)
 - [docs/presentation/DECK.md](docs/presentation/DECK.md): slide-by-slide presentation plan
 - [CLAUDE.md](CLAUDE.md): context for AI-assisted development sessions
 
