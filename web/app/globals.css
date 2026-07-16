@@ -222,6 +222,13 @@ video {
   display: block;
 }
 
+/* Mirror the live preview so it behaves like a mirror: move left, your image
+   moves left. This is preview-only; the captured frame is drawn straight from
+   the raw video stream, so the analysis still sees the true, un-flipped image. */
+.camera-frame video {
+  transform: scaleX(-1);
+}
+
 .face-guide {
   position: absolute;
   inset: 0;
@@ -250,6 +257,47 @@ video {
   stroke-width: 2.5;
   stroke-linecap: round;
   filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.45));
+}
+
+.camera-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-top: 0.9rem;
+}
+
+.flash-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  color: var(--ink-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.6rem 1.3rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.flash-toggle:hover {
+  border-color: var(--accent);
+}
+
+.flash-toggle.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.flash-hint {
+  text-align: center;
+  margin-top: 0.6rem;
+  color: var(--ink-faint);
+  font-size: 0.92rem;
 }
 
 /* Full-screen white flash: the front camera reflects the screen's own light to

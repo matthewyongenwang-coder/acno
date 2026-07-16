@@ -108,6 +108,7 @@ export default function Scan() {
   const [dragging, setDragging] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
   const [flashing, setFlashing] = useState(false);
+  const [flashOn, setFlashOn] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -188,12 +189,7 @@ export default function Scan() {
   const capturePhoto = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    // Paint the whole screen pure white first: the front camera reflects the
-    // screen's own light, brightening the face. Wait a beat so the white
-    // actually renders and the camera's auto-exposure settles, then grab the
-    // (now better lit) frame.
-    setFlashing(true);
-    window.setTimeout(() => {
+    const grab = () => {
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -201,8 +197,18 @@ export default function Scan() {
       stopCamera();
       setFlashing(false);
       canvas.toBlob((blob) => blob && handleBlob(blob), "image/jpeg", 0.95);
-    }, 350);
-  }, [handleBlob, stopCamera]);
+    };
+    if (!flashOn) {
+      grab();
+      return;
+    }
+    // Flash on: paint the whole screen pure white first. The front camera has no
+    // hardware torch, so it reflects the screen's own light to brighten the face.
+    // Wait a beat so the white actually renders and the camera's auto-exposure
+    // settles, then grab the (now better lit) frame.
+    setFlashing(true);
+    window.setTimeout(grab, 350);
+  }, [flashOn, handleBlob, stopCamera]);
 
   // draw the analyzed photo with lesion boxes
   useEffect(() => {
@@ -316,10 +322,23 @@ export default function Scan() {
                   </svg>
                 </div>
               </div>
-              <p style={{ textAlign: "center", marginTop: "0.8rem" }}>
+              <div className="camera-controls">
                 <button className="button" onClick={capturePhoto}>
                   Take the photo
                 </button>
+                <button
+                  type="button"
+                  className={`flash-toggle${flashOn ? " on" : ""}`}
+                  aria-pressed={flashOn}
+                  onClick={() => setFlashOn((on) => !on)}
+                >
+                  Flash {flashOn ? "on" : "off"}
+                </button>
+              </div>
+              <p className="flash-hint">
+                {flashOn
+                  ? "The screen flashes white as the photo is taken to light your face."
+                  : "No flash. Best in a bright room or facing a window."}
               </p>
             </div>
           ) : (
