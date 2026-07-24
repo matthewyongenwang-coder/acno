@@ -97,3 +97,13 @@ Every report carries the disclaimer: educational guidance, not medical diagnosis
 ## Team
 
 Travis, Matthew, Alan, Tanner, Erwin
+
+## License
+
+Acno's code and docs are MIT licensed: see [LICENSE](LICENSE). Use it, change it,
+build on it, just keep the copyright notice.
+
+Two files are not ours to relicense. The lesion detector weights were trained with
+Ultralytics YOLOv8, which is AGPL-3.0, and the training images belong to their dataset
+authors. [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) spells out exactly which
+files that covers and what it means if you reuse them.
