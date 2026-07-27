@@ -1,0 +1,26 @@
+{
+  "acne_type": {
+    "classes": [
+      "Blackheads",
+      "Cyst",
+      "Papules",
+      "Pustules",
+      "Whiteheads"
+    ],
+    "backbone": "mobilenet_v3_large",
+    "tag": "t_acne_mobilenet_v3_large",
+    "variant": "whole",
+    "tta": true
+  },
+  "skin_type": {
+    "classes": [
+      "dry",
+      "normal",
+      "oily"
+    ],
+    "backbone": "mobilenet_v3_large",
+    "tag": "t_whole_mobilenet_v3_large_med",
+    "variant": "whole",
+    "tta": false
+  }
+}

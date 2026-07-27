@@ -39,6 +39,19 @@ data itself, trains all three models, saves every chart, and ends with a downloa
 the trained weights. Unzip those into the repo root so `models/` has
 `skin_type.keras`, `acne_type.keras`, and `acne_yolo.pt`.
 
+For the local, scriptable version of the same recipe, plus the hyperparameter search
+and the experiment ledger, see [docs/TRAINING.md](docs/TRAINING.md).
+
+## How well do the models actually work
+
+- [docs/RESULTS.md](docs/RESULTS.md) - current accuracy for all three models, every
+  configuration tried, and per-class recall. Generated from the experiment ledger.
+- [docs/DATA_QUALITY.md](docs/DATA_QUALITY.md) - **read this before quoting any
+  number.** Both classifier datasets ship with images shared between their training and
+  test splits, which made the accuracy we originally published too high.
+- [docs/MODEL_CARD.md](docs/MODEL_CARD.md) - what the models are for, what they are not
+  for, and where they fail.
+
 ## Running the app
 
 The app is a Next.js site in `web/` that runs all three models directly in the

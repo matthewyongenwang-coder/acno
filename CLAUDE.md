@@ -19,8 +19,21 @@ the browser via onnxruntime-web; the ONNX files are committed at web/public/mode
 (converted and parity-checked by scripts/convert_models.py). The earlier Streamlit
 app was removed in favor of this.
 
-Test metrics (held-out test sets): acne_type 59.3% accuracy (5 classes), lesion
-detector mAP50 0.666, skin_type 42.5% (noisy dataset, overfits; honest limitation).
+Models were retrained in July 2026. Current metrics live in docs/RESULTS.md, generated
+from results/experiments.jsonl by scripts/write_report.py. Do not quote metrics from
+memory or from older docs; regenerate the report instead.
+
+IMPORTANT before quoting any accuracy: both classifier datasets share images between
+their own train and test splits (about 49% of the acne_type test set, 11% of
+skin_type's). The acne_type dataset was exported from Roboflow with augmentation
+applied before the split. Every number we published before July 2026 was inflated by
+this. We now evaluate on a leak-free "clean" split and report that. See
+docs/DATA_QUALITY.md.
+
+Always quote the majority-class baseline next to an accuracy number. skin_type's old
+42.5% was below its own 44.0% baseline, meaning the model was worse than always
+answering "normal". The cause was a training bug, not the data: the notebook saved the
+last epoch rather than the best one. See docs/TRAINING.md.
 
 Deck note (results section): the saved YOLO graphs in runs/detect/results/acne_yolo/
 (results.png, BoxPR_curve.png, confusion_matrix*.png) are from a throwaway 2-epoch
@@ -34,11 +47,34 @@ The app also has an AI guide: web/app/api/advice/route.ts sends the scan results
 and OTC product suggestions. Requires the ANTHROPIC_API_KEY environment variable;
 without it the section hides itself and the rules-based routine still shows.
 
+Known inconsistency: src/pipeline.py crops to a detected face before classifying, but
+web/lib/analyze.ts (what users actually run) classifies the whole photo. The shipped
+models are trained on whole images to match the browser. Training on face crops scores
+several points higher, but adopting it means shipping a face detector in the browser.
+
+Shipped models (July 2026), all measured on the strict leak-free split:
+- acne_type  97.5% (baseline 26.8%), MobileNetV3-Large, mirror TTA baked into the graph
+- skin_type  ~44% and unstable (baseline 37.7%), MobileNetV3-Large
+- acne_yolo  0.666 mAP50 on test, UNCHANGED. A 120-epoch retrain scored worse (0.641)
+  so the original weights were kept.
+
+skin_type is unstable: the same config across three seeds gave 50.9/38.6/43.9%, and
+validation accuracy does not predict test accuracy. Do not quote its best run, and do
+not treat a change under ten points as real.
+
+Classifiers are now trained in PyTorch on MPS (scripts/train_torch.py), about 5x faster
+than the TensorFlow path. Both paths are kept; see docs/TRAINING.md.
+
 Still open:
-1. Connect the repo to Vercel (Root Directory: web), add ANTHROPIC_API_KEY, publish.
-2. Presentation redesign: follow docs/presentation/DECK.md and APPLY.md.
-3. Fairness testing on diverse skin tones (Phase 4 in docs/PLAN.md).
-4. Optional: improve the skin_type model (stronger regularization or backbone).
+1. Presentation redesign: follow docs/presentation/DECK.md and APPLY.md.
+2. Fairness testing on diverse skin tones (Phase 4 in docs/PLAN.md). Biggest open gap.
+   No dataset carries skin-tone labels, so this needs per-image tone estimation.
+3. skin_type is capped by its dataset, not the recipe. Bigger backbones did WORSE.
+   A better labelled dataset is the only large win left there.
+4. Decide whether to add browser-side face detection, which would let the app use the
+   stronger face-cropped models.
+5. Browser download grew to 46 MB from ~30 MB. Float16 quantisation would roughly
+   halve it but needs testing against onnxruntime-web's wasm backend first.
 
 ## Hard rules
 
