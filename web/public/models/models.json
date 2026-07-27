@@ -8,7 +8,7 @@
       "Whiteheads"
     ],
     "backbone": "mobilenet_v3_large",
-    "tag": "t_acne_mobilenet_v3_large",
+    "tag": "acne_tone",
     "variant": "whole",
     "tta": true
   },

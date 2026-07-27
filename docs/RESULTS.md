@@ -18,7 +18,7 @@ are inflated. See [DATA_QUALITY.md](DATA_QUALITY.md).
 | Model | Published before | Now | 95% CI | Majority baseline | n | 60% target |
 |---|---|---|---|---|---|---|
 | skin_type | 42.5% (official test split, which is 11% contaminated) | **44.4%** (mean of 3 seeds, range 38.6%-50.9%) (strict) | [35.9%, 53.9%] | 37.7% | 114 | not met |
-| acne_type | 59.3% (official test split, which is 49% contaminated) | **97.5%** (with TTA) (strict) | [95.2%, 98.7%] | 26.8% | 321 | **met** |
+| acne_type | 59.3% (official test split, which is 49% contaminated) | **98.8%** (with TTA) (strict) | [96.8%, 99.5%] | 26.8% | 321 | **met** |
 | lesion detector | 66.6% mAP50 | **66.6% mAP50** (test split) | n/a | n/a | 48 | **met** |
 
 ### About the detector
@@ -63,14 +63,14 @@ Overall accuracy can hide a class the model never gets right. Whiteheads is abou
 | normal | 68.9% |
 | oily | 28.2% |
 
-### acne_type (t_acne_mobilenet_v3_large, clean_test)
+### acne_type (acne_tone, strict_test)
 
 | class | recall |
 |---|---|
 | Blackheads | 100.0% |
 | Cyst | 100.0% |
-| Papules | 95.1% |
-| Pustules | 96.5% |
+| Papules | 97.4% |
+| Pustules | 97.5% |
 | Whiteheads | 100.0% |
 
 ## Every configuration we tried
@@ -89,6 +89,7 @@ that the final numbers are not one lucky run.
 | t_face_mobilenet_v3_large_med | pytorch | face | mobilenet_v3_large | medium | 46.2% | 49.3% | 46.2% | - | 0.459 | 3.6 |
 | smoke5 | pytorch | face | mobilenet_v3_large | light | 45.4% | 47.0% | 43.7% | - | 0.422 | 3.7 |
 | f_r18 | pytorch | whole | resnet18 | medium | 43.9% | 50.0% | 44.5% | 44.7% | 0.424 | 5.5 |
+| skin_tone | pytorch | whole | mobilenet_v3_large | tone | 46.2% | 50.7% | 45.4% | 44.7% | 0.442 | 7.7 |
 | face_mnv2_med | keras | face | mobilenetv2 | medium | 41.2% | 46.3% | 44.5% | - | 0.355 | 7.9 |
 | whole_mnv2_light | keras | whole | mobilenetv2 | light | 43.1% | 48.5% | 44.5% | - | 0.431 | 9.6 |
 | seed202 | pytorch | whole | mobilenet_v3_large | medium | 45.4% | 48.5% | 43.7% | 43.9% | 0.422 | 6.0 |
@@ -110,6 +111,7 @@ that the final numbers are not one lucky run.
 
 | run | framework | input | backbone | augmentation | valid | official test | clean | strict | macro F1 | minutes |
 |---|---|---|---|---|---|---|---|---|---|---|
+| acne_tone | pytorch | whole | mobilenet_v3_large | tone | 98.6% | 98.4% | 98.1% | 97.8% | 0.983 | 10.0 |
 | t_acne_mobilenet_v3_large | pytorch | whole | mobilenet_v3_large | light | 98.2% | 97.6% | 97.4% | - | 0.978 | 6.7 |
 | t_acne_efficientnet_b0 | pytorch | whole | efficientnet_b0 | light | 96.5% | 97.6% | 97.7% | - | 0.980 | 15.7 |
 | acne_mnv2_med | keras | whole | mobilenetv2 | medium | 93.1% | 91.5% | 89.6% | - | 0.908 | 19.3 |

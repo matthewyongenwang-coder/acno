@@ -65,12 +65,25 @@ not treat a change under ten points as real.
 Classifiers are now trained in PyTorch on MPS (scripts/train_torch.py), about 5x faster
 than the TensorFlow path. Both paths are kept; see docs/TRAINING.md.
 
+FAIRNESS REVIEW DONE (July 2026, docs/FAIRNESS.md). Tone is estimated per image via
+Individual Typology Angle; groups are QUARTILES of the training distribution, never
+Fitzpatrick types, because absolute ITA does not survive uncontrolled lighting. Two
+traps found the hard way: arctan2 breaks when b* <= 0 (pink images read as dark), and
+on skin_type the coloured marketing backgrounds contaminate the skin mask, so tone MUST
+be measured inside the detected face region there. Always eyeball the contact sheets.
+Result: acne_type shows no meaningful tone gap and the test had power to detect one
+(>7 points); skin_type and the detector show none but are far too small to conclude
+anything (detectable gap 54 and 38 points). Never claim Acno works equally well on dark
+skin: the datasets contain almost none. `--augment tone` raised every acne_type group
+and narrowed the spread 4.4 -> 2.4 points, so it ships.
+
 Still open:
 1. Presentation redesign: follow docs/presentation/DECK.md and APPLY.md.
-2. Fairness testing on diverse skin tones (Phase 4 in docs/PLAN.md). Biggest open gap.
-   No dataset carries skin-tone labels, so this needs per-image tone estimation.
-3. skin_type is capped by its dataset, not the recipe. Bigger backbones did WORSE.
-   A better labelled dataset is the only large win left there.
+2. A tone-diverse evaluation set is now the highest-value missing piece. A few hundred
+   labelled images would take skin_type's detectable gap from 54 points to under 10.
+   Natural ask for Jocelyn's clinic dermatologists.
+3. skin_type is capped by its dataset, not the recipe. Bigger backbones did WORSE, and
+   tone augmentation changed nothing. A better labelled dataset is the only large win.
 4. Decide whether to add browser-side face detection, which would let the app use the
    stronger face-cropped models.
 5. Browser download grew to 46 MB from ~30 MB. Float16 quantisation would roughly

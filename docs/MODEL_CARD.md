@@ -87,12 +87,17 @@ labels. Replacing the dataset is the only change likely to move this number much
 so per-class recall is reported alongside accuracy. An overall score can look healthy
 while a small class is missed nearly every time.
 
-**Fairness across skin tones is not yet measured.** This is the single biggest open gap
-and the first milestone of the funded project plan. None of the three datasets carries
-skin-tone labels, so measuring it requires estimating tone per image and reporting
-accuracy per group. Until that is done, we do not claim the models work equally well for
-everyone, and we should assume they do not: these datasets are scraped from skincare
-media, which is not evenly representative.
+**Fairness across skin tones is now measured, and only partly answerable.** See
+[FAIRNESS.md](FAIRNESS.md). acne_type shows no meaningful difference across tone groups,
+on a test with enough power to have detected a gap larger than about 7 points. skin_type
+and the lesion detector show no difference either, but their test sets are so small that
+a 40-point gap could hide in them, so those are not findings.
+
+The limiting factor is representation: these datasets contain almost no dark skin. The
+skin_type test split has zero images in the darkest tone band. **We do not claim Acno
+works equally well on dark skin, because we have barely been able to test it.** Training
+with tone-aware augmentation raised every acne_type tone group and narrowed the spread
+between best and worst from 4.4 to 2.4 points, and that is the version shipping.
 
 **The two inference paths disagree.** `src/pipeline.py` crops to a detected face before
 classifying; `web/lib/analyze.ts`, which is what users actually run, classifies the whole

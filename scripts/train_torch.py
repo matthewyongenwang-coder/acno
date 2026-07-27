@@ -137,6 +137,18 @@ def build_augment(strength: str):
             v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2, hue=0.02),
             v2.RandomErasing(p=0.25, scale=(0.02, 0.12)),
         ])
+    if strength == "tone":
+        # Geometry as in "medium", but with colour jitter aimed specifically at skin
+        # tone. Our datasets are overwhelmingly light-skinned, so the model can learn
+        # that a particular skin colour is normal. Shifting hue, saturation and
+        # brightness across the range that separates lighter from darker skin pushes it
+        # to rely on lesion shape and texture instead of on the colour of the person.
+        # Hue stays small: past about 0.05 the skin stops looking like skin at all.
+        return v2.Compose([
+            v2.RandomHorizontalFlip(0.5),
+            v2.RandomAffine(degrees=15, translate=(0.08, 0.08), scale=(0.9, 1.1)),
+            v2.ColorJitter(brightness=0.35, contrast=0.2, saturation=0.35, hue=0.04),
+        ])
     raise ValueError(strength)
 
 
@@ -382,7 +394,7 @@ def parse_args(argv=None):
     p.add_argument("--freeze-epochs", type=int, default=3)
     p.add_argument("--warmup-epochs", type=int, default=1)
     p.add_argument("--augment", default="light",
-                   choices=["none", "light", "medium", "strong"])
+                   choices=["none", "light", "medium", "strong", "tone"])
     p.add_argument("--dropout", type=float, default=0.3)
     p.add_argument("--label-smoothing", type=float, default=0.05)
     p.add_argument("--class-weights", type=int, default=1)
