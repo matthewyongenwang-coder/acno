@@ -142,10 +142,22 @@ def section_headline(runs: list[dict], yolo: list[dict]) -> list[str]:
             base = float(cm.sum(axis=1).max() / n) if n else 0.0
             split_name = "strict" if split == "strict_test" else "clean"
 
+        # Where we have repeated seeds, the headline is their average, not the best
+        # one. Quoting the top run of a sweep on a 114-image split reports luck.
+        seeds = seed_spread(runs, dataset)
+        if seeds:
+            accs = [acc] + [
+                (strict_eval(dataset, s["tag"]) or {}).get("plain", {}).get(
+                    "accuracy", s["metrics"][headline_split(s)]["accuracy"])
+                for s in seeds]
+            acc = sum(accs) / len(accs)
+            suffix = f" (mean of {len(accs)} seeds, range {pct(min(accs))}-{pct(max(accs))})"
+        else:
+            suffix = " (with TTA)" if used_tta else ""
+
         lo, hi = wilson(int(round(acc * n)), n)
         prev_acc, prev_note = PREVIOUS[dataset]
         verdict = "**met**" if lo >= TARGET else ("borderline" if hi >= TARGET else "not met")
-        suffix = " (with TTA)" if used_tta else ""
         lines.append(
             f"| {dataset} | {pct(prev_acc)} ({prev_note}) | **{pct(acc)}**{suffix} "
             f"({split_name}) | [{pct(lo)}, {pct(hi)}] | {pct(base)} | {n} | {verdict} |")
@@ -273,10 +285,14 @@ def section_reading(runs: list[dict]) -> list[str]:
     skin = pick_best(runs, "skin_type")
     lines = ["## How to read these numbers", ""]
     if skin:
-        split = headline_split(skin)
-        cm = np.array(skin["metrics"][split]["confusion_matrix"])
-        n = int(cm.sum())
-        acc, _ = best_accuracy(skin, split)
+        after = strict_eval("skin_type", skin["tag"])
+        if after:
+            n, acc = after["n"], after["plain"]["accuracy"]
+        else:
+            split = headline_split(skin)
+            cm = np.array(skin["metrics"][split]["confusion_matrix"])
+            n = int(cm.sum())
+            acc, _ = best_accuracy(skin, split)
         lo, hi = wilson(int(round(acc * n)), n)
         lines += [
             f"**skin_type's evaluation set is only {n} images.** Its confidence interval "

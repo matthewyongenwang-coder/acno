@@ -17,7 +17,7 @@ are inflated. See [DATA_QUALITY.md](DATA_QUALITY.md).
 
 | Model | Published before | Now | 95% CI | Majority baseline | n | 60% target |
 |---|---|---|---|---|---|---|
-| skin_type | 42.5% (official test split, which is 11% contaminated) | **50.9%** (strict) | [41.8%, 59.9%] | 37.7% | 114 | not met |
+| skin_type | 42.5% (official test split, which is 11% contaminated) | **44.4%** (mean of 3 seeds, range 38.6%-50.9%) (strict) | [35.9%, 53.9%] | 37.7% | 114 | not met |
 | acne_type | 59.3% (official test split, which is 49% contaminated) | **97.5%** (with TTA) (strict) | [95.2%, 98.7%] | 26.8% | 321 | **met** |
 | lesion detector | 66.6% mAP50 | **66.6% mAP50** (test split) | n/a | n/a | 48 | **met** |
 
@@ -45,7 +45,7 @@ So the honest summary for skin_type is roughly **44.4% give or take several poin
 
 ## How to read these numbers
 
-**skin_type's evaluation set is only 119 images.** Its confidence interval runs from 42.4% to 60.1%, which is wide enough to change what conclusion you draw. Treat any single figure for it as approximate, and do not report a change of a few points as an improvement.
+**skin_type's evaluation set is only 114 images.** Its confidence interval runs from 41.8% to 59.9%, which is wide enough to change what conclusion you draw. Treat any single figure for it as approximate, and do not report a change of a few points as an improvement.
 
 **Always quote the baseline.** Guessing the most common class every time scores about 38% on skin_type and about 27% on acne_type. An accuracy figure without that context does not mean anything.
 
