@@ -56,6 +56,15 @@ const ROUTINE = [
   "Something a doctor prescribed",
 ];
 
+const SHOPPING = ["In person", "Online", "Both"];
+
+const BUDGET = [
+  "Cheapest that works",
+  "Under 20 a product",
+  "20 to 50 a product",
+  "Price is not the main thing",
+];
+
 // A group of options you can pick more than one of, with room to write in
 // anything the options did not cover.
 function ChipGroup({
@@ -156,6 +165,9 @@ function IntakeForm({
   const [activitiesExtra, setActivitiesExtra] = useState("");
   const [routine, setRoutine] = useState<string[]>([]);
   const [routineExtra, setRoutineExtra] = useState("");
+  const [location, setLocation] = useState("");
+  const [shopping, setShopping] = useState("");
+  const [budget, setBudget] = useState("");
   const [notes, setNotes] = useState("");
 
   // Updater form, not the captured array: two quick taps in the same group
@@ -176,6 +188,9 @@ function IntakeForm({
         .join(", ") || undefined,
       activities: withExtra(activities, activitiesExtra),
       routine: withExtra(routine, routineExtra),
+      location: location.trim() || undefined,
+      shopping: shopping || undefined,
+      budget: budget || undefined,
       notes: notes.trim() || undefined,
     });
   };
@@ -236,6 +251,39 @@ function IntakeForm({
       />
 
       <fieldset className="field">
+        <legend className="field-label">Where are you, roughly?</legend>
+        <p className="field-help">
+          A city or country is plenty. Skincare stock is different everywhere, so
+          this is how the guide avoids suggesting something you cannot actually
+          buy.
+        </p>
+        <input
+          className="text-input"
+          type="text"
+          value={location}
+          aria-label="Your city or country"
+          placeholder="For example Vancouver, Canada"
+          maxLength={120}
+          onChange={(event) => setLocation(event.target.value)}
+        />
+      </fieldset>
+
+      <RadioGroup
+        legend="How do you buy things?"
+        options={SHOPPING}
+        value={shopping}
+        onChange={setShopping}
+      />
+
+      <RadioGroup
+        legend="What do you want to spend?"
+        help="Almost every useful ingredient exists at drugstore prices, so a small budget is not a problem."
+        options={BUDGET}
+        value={budget}
+        onChange={setBudget}
+      />
+
+      <fieldset className="field">
         <legend className="field-label">Anything else worth knowing</legend>
         <p className="field-help">
           Stress, sleep, a diet change, periods or hormones, medication, family
@@ -269,8 +317,122 @@ function IntakeForm({
   );
 }
 
+type ChatTurn = { role: "user" | "assistant"; content: string };
+
+function Chat({ report, profile }: { report: Report; profile?: Profile }) {
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [draft, setDraft] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Keep the newest message in view as the conversation grows.
+  useEffect(() => {
+    const list = listRef.current;
+    if (list) list.scrollTop = list.scrollHeight;
+  }, [turns, thinking]);
+
+  const send = () => {
+    const text = draft.trim();
+    if (!text || thinking) return;
+    const next = [...turns, { role: "user" as const, content: text }];
+    setTurns(next);
+    setDraft("");
+    setThinking(true);
+    setFailed(false);
+
+    fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        scan: {
+          skinType: report.skinType,
+          acneType: report.acneType,
+          lesionCount: report.lesionCount,
+          severity: report.severity,
+        },
+        profile,
+        messages: next,
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        return (await response.json()) as { reply: string };
+      })
+      .then((data) =>
+        setTurns((current) => [
+          ...current,
+          { role: "assistant", content: data.reply },
+        ]),
+      )
+      .catch(() => setFailed(true))
+      .finally(() => setThinking(false));
+  };
+
+  return (
+    <div className="chat">
+      <div className="chat-head">
+        <h3>Ask about any of this</h3>
+        <p>
+          Questions about your results, a product, or what to do next. It knows
+          your scan and what you shared.
+        </p>
+      </div>
+
+      {turns.length > 0 || thinking ? (
+        <div className="chat-log" ref={listRef} data-lenis-prevent>
+          {turns.map((turn, index) => (
+            <div className={`bubble ${turn.role}`} key={index}>
+              {turn.content}
+            </div>
+          ))}
+          {thinking ? (
+            <div className="bubble assistant typing" aria-live="polite">
+              <span />
+              <span />
+              <span />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {failed ? (
+        <p className="chat-error" role="alert">
+          That message did not go through. Try again in a moment.
+        </p>
+      ) : null}
+
+      <div className="chat-input">
+        <textarea
+          rows={1}
+          value={draft}
+          maxLength={1200}
+          placeholder="Ask something about your skin"
+          aria-label="Your message"
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              send();
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="button"
+          onClick={send}
+          disabled={thinking || !draft.trim()}
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AdviceSection({ report }: { report: Report }) {
   const [state, setState] = useState<AdviceState>({ kind: "gate" });
+  const [profile, setProfile] = useState<Profile | undefined>();
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   // A native modal dialog, so focus trapping, Escape, and inertness of the page
@@ -294,6 +456,7 @@ function AdviceSection({ report }: { report: Report }) {
 
   const run = useCallback(
     (profile?: Profile) => {
+      setProfile(profile);
       setState({ kind: "loading" });
       fetch("/api/advice", {
         method: "POST",
@@ -443,6 +606,8 @@ function AdviceSection({ report }: { report: Report }) {
             were shared, never your photo. Product suggestions are ideas to
             research, not medical advice.
           </p>
+
+          <Chat report={report} profile={profile} />
         </>
       )}
     </section>

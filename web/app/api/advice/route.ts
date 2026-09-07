@@ -36,6 +36,9 @@ export interface Profile {
   background?: string;
   activities?: string[];
   routine?: string[];
+  location?: string;
+  shopping?: string;
+  budget?: string;
   notes?: string;
 }
 
@@ -75,6 +78,9 @@ function cleanProfile(value: unknown): Profile | undefined {
     background: cleanText(p.background),
     activities: cleanList(p.activities),
     routine: cleanList(p.routine),
+    location: cleanText(p.location),
+    shopping: cleanText(p.shopping),
+    budget: cleanText(p.budget),
     notes: cleanText(p.notes),
   };
   return Object.values(profile).some(Boolean) ? profile : undefined;
@@ -101,13 +107,21 @@ Rules for the causes section:
 - Only name a cause you can actually tie to what they told you or what the scan found. Never invent a lifestyle detail they did not mention.
 - If they told you very little, say plainly that the main driver is most likely ordinary hormonal change, and keep it short rather than padding it.
 - Never blame them. These are mechanisms, not mistakes, and acne is not caused by being dirty or lazy.
-- Never guess at a medical condition, a medication effect, or a diagnosis from what they wrote. If something they mention sounds like it needs a doctor, say so and move on.`;
+- Never guess at a medical condition, a medication effect, or a diagnosis from what they wrote. If something they mention sounds like it needs a doctor, say so and move on.
+
+Where they are and what they can spend change what you should suggest:
+- Only name products that are actually sold where they live. A brand that is everywhere in the United States may not exist in Canada, the UK, India, or Australia. If you are not confident a specific product is sold in their country, name the active ingredient and a format instead, and say what to look for on the shelf.
+- If they shop in person, prefer things they can walk in and buy, and name the kind of shop: a pharmacy chain, a supermarket, a beauty retailer. If they shop online, you can include things that are mostly sold online. If they do both, lead with the in person option.
+- Respect their budget. If they said cheapest that works, do not suggest a forty dollar serum; the cheap active ingredient almost always exists. If they gave no budget, assume drugstore prices.
+- Never invent a price. If you are not sure what something costs, describe it as drugstore or mid range rather than stating a number.`;
 
 const RESEARCH_SYSTEM_PROMPT = `You are a skincare research assistant. You search the web for current, widely available over-the-counter skincare products and report concise findings for another assistant to use.
 
 Focus on: cleansers, moisturizers, serums, toners, sunscreen, and spot treatments that suit the given skin type and acne type, matched by active ingredient (for example salicylic acid, benzoyl peroxide, adapalene, niacinamide, ceramides, azelaic acid).
 
-Give a diverse spread of brands and price points that are genuinely available at drugstores and beauty retailers. Do not limit yourself to the most obvious two brands. Never recommend prescription products. Note any product that is well reviewed and why it fits. Keep the whole brief under 250 words, as plain notes (no emojis, no em dashes).`;
+Give a diverse spread of brands and price points that are genuinely available at drugstores and beauty retailers. Do not limit yourself to the most obvious two brands. Never recommend prescription products. Note any product that is well reviewed and why it fits. Keep the whole brief under 250 words, as plain notes (no emojis, no em dashes).
+
+If you are told roughly where the person lives, search for what is actually stocked in that country and name the shops that carry it. Availability differs a lot between countries, so a product that is everywhere in one place can be unavailable in another. If you are told a budget, stay inside it and note roughly what tier each product sits in.`;
 
 const OUTPUT_SCHEMA = {
   type: "object",
@@ -220,6 +234,9 @@ function profileSummary(profile: Profile): string {
     lines.push(`Sports and activities: ${profile.activities.join(", ")}`);
   if (profile.routine?.length)
     lines.push(`Currently uses on their skin: ${profile.routine.join(", ")}`);
+  if (profile.location) lines.push(`Roughly where they live: ${profile.location}`);
+  if (profile.shopping) lines.push(`How they buy things: ${profile.shopping}`);
+  if (profile.budget) lines.push(`What they want to spend: ${profile.budget}`);
   if (profile.notes) lines.push(`In their own words: ${profile.notes}`);
   return lines.join("\n");
 }
@@ -234,9 +251,21 @@ function scanSummary(scan: AdviceRequest): string {
 }
 
 function researchPrompt(scan: AdviceRequest): string {
+  const where = scan.profile?.location
+    ? `They live around ${scan.profile.location}, so search for what is actually ` +
+      `stocked there and name the shops that carry it. `
+    : "";
+  const how = scan.profile?.shopping
+    ? `They buy things: ${scan.profile.shopping}. `
+    : "";
+  const spend = scan.profile?.budget
+    ? `Budget: ${scan.profile.budget}. Stay inside it. `
+    : "";
+
   return (
     `Research current over-the-counter skincare products for this profile:\n\n` +
     `${scanSummary(scan)}\n\n` +
+    `${where}${how}${spend}\n` +
     `Search the web and report a diverse set of specific, well-reviewed products ` +
     `(different brands, matched by active ingredient) that would suit this skin type ` +
     `and acne type. Return only your notes.`

@@ -1214,12 +1214,16 @@ video {
 
 /* ---------- the intake modal ---------- */
 
+/* inset 0 plus auto margins centres it on both axes, at any content height */
 .modal {
+  position: fixed;
+  inset: 0;
+  margin: auto;
   border: none;
   padding: 0;
   background: transparent;
-  max-width: min(640px, calc(100vw - 2rem));
-  width: 100%;
+  width: min(640px, calc(100vw - 2rem));
+  height: fit-content;
   max-height: min(86svh, 900px);
   overflow: visible;
   color: var(--ink);
@@ -1459,6 +1463,159 @@ video {
   line-height: 1.6;
 }
 
+/* ---------- follow-up chat ---------- */
+
+.chat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: clamp(1.3rem, 3.5vw, 1.8rem);
+  margin: 2rem 0 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-head h3 {
+  font-size: var(--step-1);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+}
+
+.chat-head p {
+  color: var(--ink-faint);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  max-width: 50ch;
+  margin-bottom: 1.2rem;
+}
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.3rem;
+  margin-bottom: 1rem;
+  scroll-behavior: smooth;
+}
+
+.bubble {
+  max-width: 85%;
+  padding: 0.75rem 1.05rem;
+  border-radius: 18px;
+  font-size: var(--step--1);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  animation: bubbleIn 0.28s var(--ease);
+}
+
+.bubble.user {
+  align-self: flex-end;
+  background: var(--accent-strong);
+  color: oklch(0.99 0.005 160);
+  border-bottom-right-radius: 6px;
+}
+
+.bubble.assistant {
+  align-self: flex-start;
+  background: var(--bg-soft);
+  color: var(--ink);
+  border-bottom-left-radius: 6px;
+}
+
+@keyframes bubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.bubble.typing {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 1rem 1.05rem;
+}
+
+.bubble.typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  animation: blink 1.3s ease-in-out infinite;
+}
+
+.bubble.typing span:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.bubble.typing span:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes blink {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+.chat-error {
+  color: var(--warm-ink);
+  font-size: var(--step--1);
+  margin-bottom: 0.8rem;
+}
+
+.chat-input {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+
+.chat-input textarea {
+  flex: 1;
+  font: inherit;
+  font-size: var(--step--1);
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 0.75rem 1rem;
+  resize: none;
+  min-height: 46px;
+  max-height: 140px;
+  line-height: 1.5;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-input textarea::placeholder {
+  color: var(--ink-faint);
+}
+
+.chat-input textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+.chat-input .button {
+  padding: 0.75rem 1.5rem;
+  flex-shrink: 0;
+}
+
+.chat-input .button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
+
 .spinner {
   width: 28px;
   height: 28px;
@@ -1552,6 +1709,16 @@ footer {
   .chip:hover,
   .cause:hover {
     transform: none;
+  }
+  .bubble {
+    animation: none;
+  }
+  .bubble.typing span {
+    animation: none;
+    opacity: 0.6;
+  }
+  .chat-log {
+    scroll-behavior: auto;
   }
   .button:hover,
   .privacy:hover,
