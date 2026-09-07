@@ -75,15 +75,14 @@ results. Privacy is preserved: only the scan numbers are sent, never the photo.
 Without an API key the app simply skips this section and falls back to its
 built-in advice.
 
-To enable it, set one of these environment variables (whichever key you have):
-`ANTHROPIC_API_KEY` for Claude, or `OPENAI_API_KEY` for OpenAI. Locally, put it
-in `web/.env.local`; on Vercel, add it under Project Settings, Environment
+To enable it, set the `GEMINI_API_KEY` environment variable. Locally, put it in
+`web/.env.local`; on Vercel, add it under Project Settings, Environment
 Variables.
 
 ### Deploying on Vercel
 
 Import the GitHub repo in Vercel and set the project's Root Directory to `web`.
-Add the `ANTHROPIC_API_KEY` environment variable if you want the AI guide.
+Add the `GEMINI_API_KEY` environment variable if you want the AI guide.
 Everything else is default: Vercel detects Next.js, builds, and serves the models
 as static files.
 

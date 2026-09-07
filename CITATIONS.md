@@ -116,8 +116,8 @@ Full pinned versions live in `requirements.txt` (Python) and `web/package.json` 
 
 ## 4. AI service (personalized guidance)
 
-- **Anthropic Claude** (model `claude-opus-4-8`), via the `@anthropic-ai/sdk` package.
-  https://www.anthropic.com
+- **Google Gemini** (model `gemini-3.8-flash`), via the `@google/genai` package.
+  https://ai.google.dev
 - Used in `web/app/api/advice/route.ts` to turn the scan results into a personalized
   written analysis and over-the-counter product suggestions.
 - **Important:** only the scan results (skin type, acne types, lesion count, severity)

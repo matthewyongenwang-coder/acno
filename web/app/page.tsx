@@ -288,6 +288,9 @@ export default function Home() {
         <p className="story-emphasis" data-reveal>
           Acno is the private, judgment-free companion I wish I had had.
         </p>
+        <p className="about-p subtle" data-reveal>
+          Matthew, who started Acno
+        </p>
       </section>
 
       <section className="about-section">
@@ -346,8 +349,9 @@ export default function Home() {
         </div>
 
         <p className="about-p subtle" data-reveal>
-          A fourth model, Claude, turns those results into a plain-language guide.
-          It only ever sees the numbers, never your photo.
+          A fourth model, Gemini, turns those results into a plain-language guide
+          and looks up current, well-reviewed products to suggest. It only ever
+          sees the numbers, never your photo.
         </p>
       </section>
 

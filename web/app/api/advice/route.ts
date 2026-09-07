@@ -5,24 +5,23 @@
 // suggests over-the-counter product types.
 //
 // Two phases:
-//   1. RESEARCH - the model searches the web for current, well-reviewed OTC
-//      products that fit the scan profile, across a range of brands. This is
-//      best effort: if web search is unavailable it is skipped.
+//   1. RESEARCH - the model searches the web (Google Search grounding) for
+//      current, well-reviewed OTC products that fit the scan profile, across
+//      a range of brands. Best effort: if search comes back empty, formatting
+//      still proceeds without it.
 //   2. FORMAT   - the model turns the scan (plus any research it found) into a
 //      structured report, drawing on the researched products so the advice is
 //      varied and not the same two brands every time.
 //
-// Works with either provider, whichever key is configured:
-//   ANTHROPIC_API_KEY -> Claude (claude-opus-4-8)
-//   OPENAI_API_KEY    -> OpenAI (gpt-4o-mini)
-// With neither key set, the route returns 503 and the app quietly falls back
-// to its built-in rules-based routine.
+// Provider: Gemini (GEMINI_API_KEY). With no key set, the route returns 503
+// and the app quietly falls back to its built-in rules-based routine.
 
-import Anthropic from "@anthropic-ai/sdk";
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 
 export const maxDuration = 60; // research + writing can take a moment
+
+const MODEL = "gemini-3.8-flash";
 
 const SKIN_TYPES = new Set(["dry", "normal", "oily"]);
 const ACNE_TYPES = new Set(["Blackheads", "Cyst", "Papules", "Pustules", "Whiteheads"]);
@@ -91,7 +90,6 @@ const OUTPUT_SCHEMA = {
           },
         },
         required: ["category", "lookFor", "example", "howToUse"],
-        additionalProperties: false,
       },
     },
     encouragement: {
@@ -101,7 +99,6 @@ const OUTPUT_SCHEMA = {
     },
   },
   required: ["analysis", "products", "encouragement"],
-  additionalProperties: false,
 } as const;
 
 export interface AdviceResponse {
@@ -167,117 +164,47 @@ function formatPrompt(scan: AdviceRequest, research: string | null): string {
   return `${base}${withResearch}Write their personalized report.`;
 }
 
-// ---- Claude (Anthropic) ----------------------------------------------------
-
-async function researchFromClaude(scan: AdviceRequest): Promise<string | null> {
+async function research(scan: AdviceRequest): Promise<string | null> {
   try {
-    const client = new Anthropic();
-    // A web search turn can pause and resume server-side; re-send until it settles.
-    let messages: Anthropic.MessageParam[] = [
-      { role: "user", content: researchPrompt(scan) },
-    ];
-    for (let i = 0; i < 4; i++) {
-      const response = await client.messages.create({
-        model: "claude-opus-4-8",
-        max_tokens: 1536,
-        system: RESEARCH_SYSTEM_PROMPT,
-        // Cast keeps the build stable across SDK versions; the live API accepts
-        // this tool id, and research is best effort so any mismatch degrades safely.
-        tools: [
-          { type: "web_search_20260209", name: "web_search", max_uses: 5 } as unknown as Anthropic.Messages.ToolUnion,
-        ],
-        messages,
-      });
-      if (response.stop_reason === "pause_turn") {
-        messages = [...messages, { role: "assistant", content: response.content }];
-        continue;
-      }
-      const text = response.content
-        .filter((b): b is Anthropic.TextBlock => b.type === "text")
-        .map((b) => b.text)
-        .join("\n")
-        .trim();
-      return text || null;
-    }
-    return null;
+    const client = new GoogleGenAI({});
+    const interaction = await client.interactions.create({
+      model: MODEL,
+      system_instruction: RESEARCH_SYSTEM_PROMPT,
+      input: researchPrompt(scan),
+      tools: [{ type: "google_search" }],
+    });
+    const text = interaction.output_text?.trim();
+    return text || null;
   } catch (error) {
-    console.error("advice research (claude):", error);
+    console.error("advice research (gemini):", error);
     return null; // research is best effort - never block the report on it
   }
 }
 
-async function adviceFromClaude(scan: AdviceRequest): Promise<AdviceResponse | null> {
-  const research = await researchFromClaude(scan);
-  const client = new Anthropic();
-  const response = await client.messages.create({
-    model: "claude-opus-4-8",
-    max_tokens: 2048,
-    thinking: { type: "adaptive" },
-    system: [
-      { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
-    ],
-    output_config: {
-      format: { type: "json_schema", schema: OUTPUT_SCHEMA },
-    },
-    messages: [{ role: "user", content: formatPrompt(scan, research) }],
-  });
-
-  if (response.stop_reason === "refusal") return null;
-  const text = response.content.find((block) => block.type === "text");
-  if (!text || text.type !== "text") return null;
-  return JSON.parse(text.text) as AdviceResponse;
-}
-
-// ---- OpenAI ----------------------------------------------------------------
-
-async function researchFromOpenAI(scan: AdviceRequest): Promise<string | null> {
-  try {
-    const client = new OpenAI();
-    const response = await client.responses.create({
-      model: "gpt-4o-mini",
-      // Tool id has varied across SDK versions (web_search / web_search_preview);
-      // cast keeps the build stable, and research is best effort at runtime.
-      tools: [{ type: "web_search" } as unknown as OpenAI.Responses.Tool],
-      instructions: RESEARCH_SYSTEM_PROMPT,
-      input: researchPrompt(scan),
-    });
-    const text = response.output_text?.trim();
-    return text || null;
-  } catch (error) {
-    console.error("advice research (openai):", error);
-    return null; // best effort
-  }
-}
-
-async function adviceFromOpenAI(scan: AdviceRequest): Promise<AdviceResponse | null> {
-  const research = await researchFromOpenAI(scan);
-  const client = new OpenAI();
-  const response = await client.chat.completions.create({
-    model: "gpt-4o-mini",
-    max_completion_tokens: 2048,
+async function advice(scan: AdviceRequest): Promise<AdviceResponse | null> {
+  const notes = await research(scan);
+  const client = new GoogleGenAI({});
+  const interaction = await client.interactions.create({
+    model: MODEL,
+    system_instruction: SYSTEM_PROMPT,
+    input: formatPrompt(scan, notes),
     response_format: {
-      type: "json_schema",
-      json_schema: { name: "skin_advice", strict: true, schema: OUTPUT_SCHEMA },
+      type: "text",
+      mime_type: "application/json",
+      schema: OUTPUT_SCHEMA,
     },
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: formatPrompt(scan, research) },
-    ],
+    generation_config: {
+      thinking_level: "high",
+    },
   });
 
-  const message = response.choices[0]?.message;
-  if (!message || message.refusal || !message.content) return null;
-  return JSON.parse(message.content) as AdviceResponse;
+  const text = interaction.output_text?.trim();
+  if (!text) return null;
+  return JSON.parse(text) as AdviceResponse;
 }
 
 export async function POST(request: Request) {
-  const provider = process.env.ANTHROPIC_API_KEY
-    ? adviceFromClaude
-    : process.env.OPENAI_API_KEY
-      ? adviceFromOpenAI
-      : null;
-
-  if (!provider) {
+  if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
   }
 
@@ -287,11 +214,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const advice = await provider(scan);
-    if (!advice) {
+    const result = await advice(scan);
+    if (!result) {
       return NextResponse.json({ error: "ai_declined" }, { status: 502 });
     }
-    return NextResponse.json(advice);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("advice route:", error);
     return NextResponse.json({ error: "ai_error" }, { status: 502 });

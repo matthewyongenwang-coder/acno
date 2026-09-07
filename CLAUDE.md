@@ -43,9 +43,13 @@ docs/presentation/DECK.md slide 5 for the caveat. Slide text for results (skin t
 acne, lesion detector) was drafted in chat this session; not stored as files.
 
 The app also has an AI guide: web/app/api/advice/route.ts sends the scan results
-(never the photo) to Claude (claude-opus-4-8), which writes a personalized analysis
-and OTC product suggestions. Requires the ANTHROPIC_API_KEY environment variable;
-without it the section hides itself and the rules-based routine still shows.
+(never the photo) to Gemini (gemini-3.8-flash, via @google/genai's Interactions
+API, with Google Search grounding for product research and thinking_level "high"
+for the report), which writes a personalized analysis and OTC product suggestions.
+Requires the GEMINI_API_KEY environment variable; without it the section hides
+itself and the rules-based routine still shows. Switched from Claude/OpenAI in
+September 2026 - self-funded, and Gemini's pricing plus native search grounding
+fit the reasoning/research bar better than paying for Opus.
 
 Known inconsistency: src/pipeline.py crops to a detected face before classifying, but
 web/lib/analyze.ts (what users actually run) classifies the whole photo. The shipped
