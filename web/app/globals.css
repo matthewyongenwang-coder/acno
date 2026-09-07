@@ -1212,6 +1212,102 @@ video {
   box-shadow: var(--shadow-sm);
 }
 
+/* ---------- the intake modal ---------- */
+
+.modal {
+  border: none;
+  padding: 0;
+  background: transparent;
+  max-width: min(640px, calc(100vw - 2rem));
+  width: 100%;
+  max-height: min(86svh, 900px);
+  overflow: visible;
+  color: var(--ink);
+}
+
+.modal::backdrop {
+  background: oklch(0.15 0.012 64 / 0.6);
+  backdrop-filter: blur(6px);
+}
+
+.modal-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  box-shadow: var(--shadow-lg);
+  max-height: min(86svh, 900px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(1.4rem, 4vw, 2rem);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.modal-head h3 {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.modal-close {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.modal-close:hover {
+  background: var(--bg-soft);
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+
+/* inside the modal the form is the panel, so it drops its own shell */
+.modal .intake {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+
+.modal[open] {
+  animation: modalIn 0.34s var(--ease-quint);
+}
+
+.modal[open]::backdrop {
+  animation: backdropIn 0.34s ease;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+}
+
 .intake-intro {
   color: var(--ink-soft);
   max-width: 56ch;
@@ -1448,6 +1544,14 @@ footer {
   .screen-flash,
   .number-bar span {
     transition: none;
+  }
+  .modal[open],
+  .modal[open]::backdrop {
+    animation: none;
+  }
+  .chip:hover,
+  .cause:hover {
+    transform: none;
   }
   .button:hover,
   .privacy:hover,

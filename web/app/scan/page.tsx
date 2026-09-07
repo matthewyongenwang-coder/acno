@@ -158,7 +158,10 @@ function IntakeForm({
   const [routineExtra, setRoutineExtra] = useState("");
   const [notes, setNotes] = useState("");
 
-  const toggle = (list: string[], value: string) =>
+  // Updater form, not the captured array: two quick taps in the same group
+  // would otherwise both read the pre-click state and the second would undo
+  // the first.
+  const toggle = (value: string) => (list: string[]) =>
     list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
   const submit = () => {
@@ -215,7 +218,7 @@ function IntakeForm({
         help="Sweat, friction, helmet straps, and chlorine all show up on skin in specific places."
         options={ACTIVITIES}
         selected={activities}
-        onToggle={(value) => setActivities(toggle(activities, value))}
+        onToggle={(value) => setActivities(toggle(value))}
         extra={activitiesExtra}
         onExtra={setActivitiesExtra}
         extraLabel="Anything else you do regularly"
@@ -226,7 +229,7 @@ function IntakeForm({
         help="Knowing this avoids suggesting something you are doing already, or something that clashes with it."
         options={ROUTINE}
         selected={routine}
-        onToggle={(value) => setRoutine(toggle(routine, value))}
+        onToggle={(value) => setRoutine(toggle(value))}
         extra={routineExtra}
         onExtra={setRoutineExtra}
         extraLabel="Specific products or anything else you use"
@@ -268,6 +271,26 @@ function IntakeForm({
 
 function AdviceSection({ report }: { report: Report }) {
   const [state, setState] = useState<AdviceState>({ kind: "gate" });
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  // A native modal dialog, so focus trapping, Escape, and inertness of the page
+  // behind it are the browser's job rather than ours.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (state.kind === "form" && !dialog.open) dialog.showModal();
+    if (state.kind !== "form" && dialog.open) dialog.close();
+  }, [state.kind]);
+
+  // showModal blocks interaction behind it but not scrolling, so hold the page.
+  useEffect(() => {
+    if (state.kind !== "form") return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [state.kind]);
 
   const run = useCallback(
     (profile?: Profile) => {
@@ -311,7 +334,40 @@ function AdviceSection({ report }: { report: Report }) {
     );
   }
 
-  if (state.kind === "gate") {
+  // The form floats above the page, so the gate card stays where it was.
+  const modal = (
+    <dialog
+      className="modal"
+      ref={dialogRef}
+      aria-label="A little about you"
+      onCancel={() => setState({ kind: "gate" })}
+      onClose={() => {
+        setState((current) => (current.kind === "form" ? { kind: "gate" } : current));
+      }}
+    >
+      {/* data-lenis-prevent keeps smooth scrolling off this inner panel */}
+      <div className="modal-panel" data-lenis-prevent>
+        <div className="modal-head">
+          <h3>A little about you</h3>
+          <button
+            type="button"
+            className="modal-close"
+            aria-label="Close"
+            onClick={() => setState({ kind: "gate" })}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+              <path d="M6 6 L18 18 M18 6 L6 18" />
+            </svg>
+          </button>
+        </div>
+        {state.kind === "form" ? (
+          <IntakeForm onSubmit={(profile) => run(profile)} onSkip={() => run()} />
+        ) : null}
+      </div>
+    </dialog>
+  );
+
+  if (state.kind === "gate" || state.kind === "form") {
     return (
       <section aria-label="AI skin guide">
         <div className="gate">
@@ -329,15 +385,7 @@ function AdviceSection({ report }: { report: Report }) {
             See AI analysis and recommendations
           </button>
         </div>
-      </section>
-    );
-  }
-
-  if (state.kind === "form") {
-    return (
-      <section aria-label="About you">
-        <h3 className="section-title">A little about you</h3>
-        <IntakeForm onSubmit={(profile) => run(profile)} onSkip={() => run()} />
+        {modal}
       </section>
     );
   }
