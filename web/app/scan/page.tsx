@@ -232,14 +232,14 @@ export default function Scan() {
   const report = stage.kind === "done" ? stage.report : null;
 
   return (
-    <main>
+    <main className="tool">
       <div className="hero">
         <h1>Scan your skin</h1>
         <p>A private first answer, in your browser. Nothing is uploaded.</p>
       </div>
 
       <div className="note">
-        Take or upload a clear photo of your face in good light. Acno runs entirely in
+        Take or upload a clear photo of your face in good light. acno runs entirely in
         your browser: the photo is analyzed on your own device and never uploaded
         anywhere. When you close this page, it is gone.
       </div>

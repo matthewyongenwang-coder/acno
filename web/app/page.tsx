@@ -3,32 +3,53 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-// Reveal-on-scroll and count-up, set up once for the whole page.
-// Content is visible by default (see globals.css); this only enhances it,
-// and it stays fully static when the reader prefers reduced motion.
-function useMotion() {
-  useEffect(() => {
-    const root = document.getElementById("about-root");
-    if (!root) return;
+/* --------------------------------------------------------------------------
+   Motion setup
 
-    const prefersReduced = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    if (prefersReduced) return;
+   Everything here enhances content that is already visible. If the observer
+   never fires (no JS, a headless renderer, a background tab), the page still
+   reads correctly; it just does not animate.
+   -------------------------------------------------------------------------- */
+
+function useReveals() {
+  useEffect(() => {
+    const root = document.getElementById("story-root");
+    if (!root) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const targets = Array.from(
+      root.querySelectorAll<HTMLElement>(
+        "[data-reveal], [data-stagger], .line-reveal, .number-bar, [data-count]",
+      ),
+    );
+
+    // Anything already on screen at load is simply there. Only what is below
+    // the fold gets an entrance, so nothing the reader can already see depends
+    // on an observer firing.
+    for (const el of targets) {
+      if (el.getBoundingClientRect().top < window.innerHeight * 0.9) {
+        el.classList.add("in", "lit", "filled");
+      }
+    }
 
     root.classList.add("motion-ready");
 
-    const runCount = (el: HTMLElement) => {
+    // Last resort: if the observer never fires (background tab, headless
+    // renderer, a browser that pauses transitions), show everything anyway.
+    const failsafe = window.setTimeout(() => {
+      for (const el of targets) el.classList.add("in", "lit", "filled");
+    }, 4000);
+
+    const countUp = (el: HTMLElement) => {
       const target = Number(el.dataset.count);
       const decimals = Number(el.dataset.decimals ?? "0");
       const suffix = el.dataset.suffix ?? "";
       const start = performance.now();
-      const duration = 1100;
+      const duration = 1300;
       const tick = (now: number) => {
         const t = Math.min(1, (now - start) / duration);
-        const eased = 1 - Math.pow(1 - t, 4); // ease-out-quart
-        const value = target * eased;
-        el.textContent = value.toFixed(decimals) + suffix;
+        const eased = 1 - Math.pow(1 - t, 5);
+        el.textContent = (target * eased).toFixed(decimals) + suffix;
         if (t < 1) requestAnimationFrame(tick);
         else el.textContent = target.toFixed(decimals) + suffix;
       };
@@ -40,29 +61,59 @@ function useMotion() {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
           const el = entry.target as HTMLElement;
-          el.classList.add("in");
-          if (el.dataset.count) runCount(el);
+          el.classList.add("in", "lit", "filled");
+          if (el.dataset.count) countUp(el);
           observer.unobserve(el);
         }
       },
-      { threshold: 0.2, rootMargin: "0px 0px -8% 0px" },
+      { threshold: 0.25, rootMargin: "0px 0px -10% 0px" },
     );
 
-    root.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el) => {
-      observer.observe(el);
-    });
+    for (const el of targets) {
+      if (!el.classList.contains("in")) observer.observe(el);
+      else if (el.dataset.count) countUp(el);
+    }
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(failsafe);
+    };
   }, []);
 }
 
-function ScanGraphic() {
-  // A phone frame with a sweeping scan line and detected spots popping in.
-  // Abstract on purpose: no real face, just the idea of an on-device scan.
+// The header borrows the palette of whatever half of the page is behind it.
+function useHeaderTheme() {
+  useEffect(() => {
+    const header = document.querySelector(".site-header");
+    const sentinel = document.getElementById("daybreak");
+    if (!header || !sentinel) return;
+
+    header.classList.add("night");
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        header.classList.toggle("night", entry.boundingClientRect.top > 0);
+        header.classList.toggle("scrolled", entry.boundingClientRect.top < 200);
+      },
+      { threshold: 0, rootMargin: "-64px 0px 0px 0px" },
+    );
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+      header.classList.remove("night", "scrolled");
+    };
+  }, []);
+}
+
+/* --------------------------------------------------------------------------
+   The device: a phone scanning in a dark room
+   -------------------------------------------------------------------------- */
+
+function Device() {
   const ref = useRef<HTMLDivElement>(null);
 
-  // Only animate while the graphic is on screen, to save the compositor and
-  // battery when it is scrolled away.
+  // Stop the loop while it is off screen, to spare the compositor.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -75,70 +126,300 @@ function ScanGraphic() {
   }, []);
 
   return (
-    <div className="scan-graphic" ref={ref} aria-hidden>
-      <svg viewBox="0 0 260 300" role="img">
+    <div className="device" ref={ref} aria-hidden>
+      <svg viewBox="0 0 280 320" role="img">
         <defs>
-          <linearGradient id="scanline" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(109,152,134,0)" />
-            <stop offset="50%" stopColor="rgba(109,152,134,0.55)" />
-            <stop offset="100%" stopColor="rgba(109,152,134,0)" />
+          <linearGradient id="sweep" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="oklch(0.8 0.11 162 / 0)" />
+            <stop offset="50%" stopColor="oklch(0.8 0.11 162 / 0.7)" />
+            <stop offset="100%" stopColor="oklch(0.8 0.11 162 / 0)" />
           </linearGradient>
-          <clipPath id="frame">
-            <rect x="30" y="20" width="200" height="260" rx="26" />
+          <clipPath id="screen">
+            <rect x="40" y="20" width="200" height="280" rx="30" />
           </clipPath>
         </defs>
 
         <rect
-          x="30"
+          x="40"
           y="20"
           width="200"
-          height="260"
-          rx="26"
-          fill="#ffffff"
-          stroke="var(--border)"
+          height="280"
+          rx="30"
+          fill="oklch(0.22 0.014 64)"
+          stroke="oklch(0.36 0.02 70)"
           strokeWidth="1.5"
         />
 
-        <g clipPath="url(#frame)">
-          <circle cx="130" cy="128" r="52" fill="var(--bg-soft)" />
-          <path d="M60 280 Q130 190 200 280 Z" fill="var(--bg-soft)" />
+        <g clipPath="url(#screen)">
+          {/* an abstract face, never a real one */}
+          <circle cx="140" cy="140" r="58" fill="oklch(0.27 0.016 64)" />
+          <path d="M70 300 Q140 200 210 300 Z" fill="oklch(0.27 0.016 64)" />
 
-          <g className="scan-spot" style={{ ["--d" as string]: "0.2s" }}>
-            <circle cx="108" cy="118" r="5" fill="none" stroke="var(--accent)" strokeWidth="2" />
-          </g>
-          <g className="scan-spot" style={{ ["--d" as string]: "0.5s" }}>
-            <circle cx="150" cy="110" r="5" fill="none" stroke="var(--accent)" strokeWidth="2" />
-          </g>
-          <g className="scan-spot" style={{ ["--d" as string]: "0.8s" }}>
-            <circle cx="140" cy="148" r="5" fill="none" stroke="var(--accent)" strokeWidth="2" />
-          </g>
-          <g className="scan-spot" style={{ ["--d" as string]: "1.1s" }}>
-            <circle cx="116" cy="152" r="5" fill="none" stroke="var(--accent)" strokeWidth="2" />
-          </g>
+          {[
+            { x: 116, y: 128, d: "0.1s" },
+            { x: 163, y: 120, d: "0.45s" },
+            { x: 152, y: 162, d: "0.8s" },
+            { x: 124, y: 166, d: "1.15s" },
+          ].map((spot) => (
+            <g
+              className="scan-spot"
+              key={`${spot.x}-${spot.y}`}
+              style={{ ["--d" as string]: spot.d }}
+            >
+              <circle
+                cx={spot.x}
+                cy={spot.y}
+                r="6"
+                fill="none"
+                stroke="oklch(0.85 0.1 162)"
+                strokeWidth="2"
+              />
+            </g>
+          ))}
 
-          <rect className="scan-line" x="30" y="0" width="200" height="46" fill="url(#scanline)" />
+          <rect
+            className="scan-line"
+            x="40"
+            y="0"
+            width="200"
+            height="52"
+            fill="url(#sweep)"
+          />
         </g>
 
-        <g stroke="var(--accent)" strokeWidth="2.5" fill="none" strokeLinecap="round">
-          <path d="M46 40 v-2 a6 6 0 0 1 6 -6 h2" />
-          <path d="M208 32 h2 a6 6 0 0 1 6 6 v2" />
-          <path d="M46 260 v2 a6 6 0 0 0 6 6 h2" />
-          <path d="M208 268 h2 a6 6 0 0 0 6 -6 v-2" />
+        <g
+          stroke="oklch(0.8 0.095 162)"
+          strokeWidth="2.5"
+          fill="none"
+          strokeLinecap="round"
+        >
+          <path d="M58 44 v-4 a8 8 0 0 1 8 -8 h4" />
+          <path d="M214 32 h4 a8 8 0 0 1 8 8 v4" />
+          <path d="M58 276 v4 a8 8 0 0 0 8 8 h4" />
+          <path d="M214 288 h4 a8 8 0 0 0 8 -8 v-4" />
         </g>
       </svg>
     </div>
   );
 }
 
-// A live, privacy-safe usage count. Records this visit (one increment per page
-// load) and shows the running total. Hidden entirely until the counter is
-// configured, so the page never shows a lonely frozen number.
+/* --------------------------------------------------------------------------
+   One photo, read three ways
+   -------------------------------------------------------------------------- */
+
+const READS = [
+  {
+    title: "Skin type",
+    detail:
+      "Dry, normal, or oily. This is the reading we are still fighting with, and we say so below.",
+  },
+  {
+    title: "Acne type",
+    detail:
+      "Whiteheads, blackheads, papules, pustules, or cysts. Each one wants a different ingredient.",
+  },
+  {
+    title: "How much",
+    detail:
+      "A detector finds every individual spot, counts them, and turns the count into a severity.",
+  },
+];
+
+function FaceRead({ active }: { active: number }) {
+  return (
+    <div className="read-face" aria-hidden>
+      <svg viewBox="0 0 260 300" role="img">
+        <rect
+          x="10"
+          y="10"
+          width="240"
+          height="280"
+          rx="26"
+          fill="var(--surface)"
+          stroke="var(--border)"
+          strokeWidth="1.5"
+        />
+        <circle cx="130" cy="132" r="62" fill="var(--bg-soft)" />
+        <path d="M56 290 Q130 190 204 290 Z" fill="var(--bg-soft)" />
+
+        {/* 0: skin type, a wash across the whole face */}
+        <g className={`read-layer ${active === 0 ? "on" : ""}`}>
+          <circle
+            cx="130"
+            cy="132"
+            r="62"
+            fill="var(--accent)"
+            opacity="0.22"
+          />
+          <text
+            x="130"
+            y="240"
+            textAnchor="middle"
+            fontSize="15"
+            fontWeight="600"
+            fill="var(--accent-strong)"
+          >
+            oily
+          </text>
+        </g>
+
+        {/* 1: acne type, each spot named */}
+        <g className={`read-layer ${active === 1 ? "on" : ""}`}>
+          {[
+            { x: 104, y: 118 },
+            { x: 156, y: 112 },
+            { x: 146, y: 158 },
+            { x: 112, y: 160 },
+          ].map((p) => (
+            <circle
+              key={`${p.x}-${p.y}`}
+              cx={p.x}
+              cy={p.y}
+              r="7"
+              fill="none"
+              stroke="var(--accent-strong)"
+              strokeWidth="2.2"
+            />
+          ))}
+          <text
+            x="130"
+            y="240"
+            textAnchor="middle"
+            fontSize="15"
+            fontWeight="600"
+            fill="var(--accent-strong)"
+          >
+            papules
+          </text>
+        </g>
+
+        {/* 2: severity, boxed and counted */}
+        <g className={`read-layer ${active === 2 ? "on" : ""}`}>
+          {[
+            { x: 96, y: 108 },
+            { x: 148, y: 102 },
+            { x: 138, y: 148 },
+            { x: 104, y: 150 },
+            { x: 128, y: 176 },
+          ].map((p) => (
+            <rect
+              key={`${p.x}-${p.y}`}
+              x={p.x}
+              y={p.y}
+              width="18"
+              height="18"
+              rx="3"
+              fill="none"
+              stroke="var(--accent-strong)"
+              strokeWidth="2"
+            />
+          ))}
+          <text
+            x="130"
+            y="240"
+            textAnchor="middle"
+            fontSize="15"
+            fontWeight="600"
+            fill="var(--accent-strong)"
+          >
+            14 spots, moderate
+          </text>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function PipelineScene() {
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+
+  // How far we are through the pinned frame decides which read is showing.
+  //
+  // This measures the element every frame rather than listening for scroll.
+  // Smooth-scrolling libraries drive the page from their own loop and do not
+  // reliably emit scroll events, so a listener here silently never fires. The
+  // loop only runs while the scene is actually on screen.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    let frame = 0;
+    let last = -1;
+
+    const measure = () => {
+      const rect = scene.getBoundingClientRect();
+      const range = rect.height - window.innerHeight;
+      if (range > 0) {
+        const progress = Math.min(1, Math.max(0, -rect.top / range));
+        const next = Math.min(
+          READS.length - 1,
+          Math.floor(progress * READS.length),
+        );
+        if (next !== last) {
+          last = next;
+          setActive(next);
+        }
+      }
+      frame = requestAnimationFrame(measure);
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !frame) {
+          frame = requestAnimationFrame(measure);
+        } else if (!entry.isIntersecting && frame) {
+          cancelAnimationFrame(frame);
+          frame = 0;
+        }
+      },
+      { threshold: 0 },
+    );
+    observer.observe(scene);
+
+    return () => {
+      observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  return (
+    <div className="pipeline-scene" ref={sceneRef}>
+      <div className="pipeline-sticky shell">
+        <div className="pipeline-visual">
+          <FaceRead active={active} />
+        </div>
+        <div className="pipeline-steps">
+          {READS.map((read, index) => (
+            <div
+              className={`pipeline-step ${index === active ? "active" : ""}`}
+              key={read.title}
+            >
+              <h3>
+                <span className="pipeline-index">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                {read.title}
+              </h3>
+              <p>{read.detail}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------------------
+   Live visit count. Privacy-safe: one integer, no ids, no cookies.
+   -------------------------------------------------------------------------- */
+
 function ScanCount() {
   const [count, setCount] = useState<number | null>(null);
   const recorded = useRef(false);
 
   useEffect(() => {
-    if (recorded.current) return; // count each visit once, not twice in dev
+    if (recorded.current) return;
     recorded.current = true;
     fetch("/api/visits", { method: "POST" })
       .then((response) => (response.ok ? response.json() : null))
@@ -151,297 +432,261 @@ function ScanCount() {
   if (count === null || count <= 0) return null;
   return (
     <p className="scan-count">
-      <strong>{count.toLocaleString("en-CA")}</strong> visits so far
+      <strong>{count.toLocaleString("en-CA")}</strong> scans run so far
     </p>
   );
 }
 
-const PIPELINE = [
+/* --------------------------------------------------------------------------
+   Numbers: accuracy always sits next to the score you would get by guessing.
+   Figures from docs/RESULTS.md, strict leak-free split.
+   -------------------------------------------------------------------------- */
+
+const NUMBERS = [
   {
-    title: "Skin type",
-    detail: "Dry, normal or oily. A MobileNetV2 network fine-tuned on skin.",
+    value: 98.8,
+    decimals: 1,
+    suffix: "%",
+    fill: 0.988,
+    label: "acne type, across five classes. Guessing the most common one gets 26.8%.",
   },
   {
-    title: "Acne type",
-    detail: "Whiteheads, blackheads, papules, pustules or cysts. Each needs different care.",
+    value: 66.6,
+    decimals: 1,
+    suffix: "%",
+    fill: 0.666,
+    label: "mAP50 for the spot detector, measured on images it never trained on.",
   },
   {
-    title: "Severity",
-    detail: "A YOLOv8 detector finds and counts every spot, then grades how severe it is.",
+    value: 44.4,
+    decimals: 1,
+    suffix: "%",
+    fill: 0.444,
+    label: "skin type, against a 37.7% baseline. This one is barely better than guessing.",
   },
 ];
 
-function PipelineIcon({ index }: { index: number }) {
-  const common = {
-    fill: "none",
-    stroke: "var(--accent-dark)",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-  };
-  if (index === 0)
-    return (
-      <svg viewBox="0 0 24 24" width="26" height="26" {...common}>
-        <circle cx="12" cy="12" r="8" />
-        <path d="M12 4 a8 8 0 0 1 0 16" fill="var(--bg-soft)" stroke="none" />
-      </svg>
-    );
-  if (index === 1)
-    return (
-      <svg viewBox="0 0 24 24" width="26" height="26" {...common}>
-        <circle cx="8" cy="9" r="2.4" />
-        <circle cx="16" cy="8" r="1.6" />
-        <circle cx="14" cy="16" r="2.8" />
-      </svg>
-    );
-  return (
-    <svg viewBox="0 0 24 24" width="26" height="26" {...common}>
-      <rect x="4" y="4" width="7" height="7" rx="1.5" />
-      <rect x="13" y="13" width="7" height="7" rx="1.5" />
-      <path d="M9 15 h3 M15 6 h4 M17 4 v4" />
-    </svg>
-  );
-}
-
-function Stat({
-  count,
-  decimals = 0,
-  suffix = "",
-  prefix = "",
-  label,
-}: {
-  count: number;
-  decimals?: number;
-  suffix?: string;
-  prefix?: string;
-  label: string;
-}) {
-  const initial = count.toFixed(decimals) + suffix;
-  return (
-    <div className="stat" data-reveal>
-      <div className="stat-value">
-        {prefix}
-        <span data-count={count} data-decimals={decimals} data-suffix={suffix}>
-          {initial}
-        </span>
-      </div>
-      <div className="stat-label">{label}</div>
-    </div>
-  );
-}
-
-export default function Home() {
-  useMotion();
+export default function Story() {
+  useReveals();
+  useHeaderTheme();
 
   return (
-    <main id="about-root" className="about">
-      <section className="about-hero">
-        <div className="about-hero-text" data-reveal>
-          <h1>Skin answers should not need an appointment.</h1>
-          <p className="lede">
-            A dermatologist is expensive, slow to book, and for a lot of teens
-            just too embarrassing to face. So most of us guess, following whatever
-            skincare trend is loudest online. Acno is a free, private first answer
-            that runs entirely on your own device.
-          </p>
-          <Link href="/scan" className="button about-cta">
-            Try a scan
-          </Link>
-          <ScanCount />
-        </div>
-        <div data-reveal className="about-hero-visual">
-          <ScanGraphic />
-        </div>
-      </section>
+    <main id="story-root" className="story-page">
+      {/* ================= night ================= */}
 
-      <section className="about-band" data-reveal>
-        <Stat count={85} suffix="%" label="of people aged 12 to 24 deal with acne" />
-        <Stat count={0} label="photos uploaded, stored, or used for training" />
-        <Stat count={3} label="AI models reading a single photo" />
-      </section>
-
-      {/* ---------- Part one: the story ---------- */}
-
-      <div className="part-intro" data-reveal>
-        <span className="part-kicker">Part one</span>
-        <h2 className="part-title">Why Acno exists</h2>
-      </div>
-
-      <section className="about-section story">
-        <p className="story-lead" data-reveal>
-          Acno started with my own skin.
-        </p>
-        <p className="about-p" data-reveal>
-          When my acne got bad, I did not know what to do, and I worked it out
-          slowly, mostly alone, with very little support. A lot of that was fear.
-          The stigma around acne made me too embarrassed to ask anyone for help in
-          person. What I wanted back then was something genuinely private and safe
-          to ask, an answer I could get without anyone watching or judging me.
-        </p>
-        <p className="about-p" data-reveal>
-          I also watched friends go through worse. People were bullied and shamed
-          for their skin, even though acne is mostly just puberty doing its work,
-          not anything they did or could control. Seeing people I care about get
-          hurt for something that was not their fault is what pushed me to build
-          this.
-        </p>
-        <p className="story-emphasis" data-reveal>
-          Acno is the private, judgment-free companion I wish I had had.
-        </p>
-        <p className="about-p subtle" data-reveal>
-          Matthew, who started Acno
-        </p>
-      </section>
-
-      <section className="about-section">
-        <h2 className="about-h2" data-reveal>
-          Built to help, not to judge
-        </h2>
-        <p className="about-p" data-reveal>
-          That is why Acno is free, private, and open to anyone. Your photo never
-          leaves your device, so there is nothing to be embarrassed about and no
-          one to face. It is built first for the people who need it most and can
-          ask for it least: teens who cannot afford a dermatologist, newcomers, and
-          anyone kept away by fear or stigma.
-        </p>
-        <p className="about-p" data-reveal>
-          Instead of the loud, and often wrong, skincare advice online, it gives a
-          calm and honest first answer, and it always points serious cases toward a
-          real dermatologist. The plan for this grant is to launch Acno publicly,
-          translate the guide for newcomer families, and run a school-wide
-          awareness campaign about skin health and skincare misinformation. As a
-          student government member, I also hope to team up with our school
-          government to spread the word further.
-        </p>
-      </section>
-
-      {/* ---------- Part two: the tech ---------- */}
-
-      <div className="part-intro" data-reveal>
-        <span className="part-kicker">Part two</span>
-        <h2 className="part-title">How Acno works</h2>
-      </div>
-
-      <section className="about-section">
-        <h2 className="about-h2" data-reveal>
-          One photo, read three ways
-        </h2>
-        <p className="about-p" data-reveal>
-          When you scan, the picture never leaves your browser. Three models look
-          at it on your device and hand back one report.
-        </p>
-
-        <div className="pipeline">
-          {PIPELINE.map((step, index) => (
-            <div
-              className="pipeline-step"
-              data-reveal
-              style={{ ["--i" as string]: String(index) }}
-              key={step.title}
-            >
-              <div className="pipeline-icon">
-                <PipelineIcon index={index} />
-              </div>
-              <h3>{step.title}</h3>
-              <p>{step.detail}</p>
+      <div className="night-zone night">
+        <section className="opening shell">
+          <div data-reveal>
+            <h1>It is 11pm and you are looking at your face again.</h1>
+            <p className="lede">
+              Not in front of anyone. Just you, the mirror, and the part of
+              growing up nobody wants to ask about out loud. acno gives you a
+              straight answer about your skin, on your own phone, without
+              sending your photo anywhere.
+            </p>
+            <div className="opening-actions">
+              <Link href="/scan" className="button">
+                Scan your skin
+              </Link>
+              <ScanCount />
             </div>
-          ))}
-        </div>
+          </div>
+          <Device />
 
-        <p className="about-p subtle" data-reveal>
-          A fourth model, Gemini, turns those results into a plain-language guide
-          and looks up current, well-reviewed products to suggest. It only ever
-          sees the numbers, never your photo.
-        </p>
-      </section>
+          <div className="scroll-cue" aria-hidden>
+            <span className="scroll-cue-line" />
+            scroll
+          </div>
+        </section>
 
-      <section className="about-section">
-        <h2 className="about-h2" data-reveal>
-          What the models actually score
-        </h2>
-        <p className="about-p" data-reveal>
-          Measured on faces the models never saw during training. We report the
-          weak number too, because pretending it is perfect would be the dishonest
-          part.
-        </p>
-        <div className="metric-row">
-          <Stat count={59} suffix="%" label="acne type, across 5 classes (guessing is 20%)" />
-          <Stat count={0.67} decimals={2} label="mAP for the spot detector" />
-          <Stat count={43} suffix="%" label="skin type, the one we are still fixing" />
-        </div>
-      </section>
-
-      <section className="about-section">
-        <div className="honesty" data-reveal>
-          <h2 className="about-h2">The hard part was never the model</h2>
-          <p className="about-p">
-            It was the data. Rare acne types had four times fewer photos, so early
-            models ignored them until we weighted them. The skin type model
-            memorized its training set instead of learning, and the graphs caught
-            it. And dermatology datasets rarely document skin tone coverage, a
-            known bias risk we flag openly and are testing against. Knowing what a
-            model cannot do turned out to be most of the work.
+        <section className="story shell-narrow">
+          <p className="story-lead" data-reveal>
+            acno started with my own skin.
           </p>
-        </div>
-      </section>
-
-      <section className="about-section privacy" data-reveal>
-        <div className="privacy-mark" aria-hidden>
-          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="var(--accent-dark)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 3 4 6 v6 c0 5 3.5 7.5 8 9 4.5 -1.5 8 -4 8 -9 V6 Z" />
-            <path d="M9 12 l2 2 4 -4" />
-          </svg>
-        </div>
-        <div>
-          <h2 className="about-h2">Your photo stays yours</h2>
-          <p className="about-p">
-            Acno has no server that receives your image. Everything runs in the
-            page you are looking at, and when you close the tab the photo is gone.
-            Nothing is saved, and nothing is ever used to train anything.
+          <p className="line-reveal">
+            When my acne got bad I did not know what to do, and I worked it out
+            slowly, mostly alone, with very little help. A lot of that was fear.
+            The stigma around acne made me too embarrassed to ask anyone in
+            person. What I wanted back then was somewhere genuinely private to
+            ask, an answer I could get without anyone watching or judging me.
           </p>
-        </div>
-      </section>
+          <p className="line-reveal">
+            I also watched friends go through worse. People were bullied and
+            shamed for their skin, even though acne is mostly just puberty doing
+            its work, not anything they did or could control. Seeing people I
+            care about get hurt for something that was not their fault is what
+            pushed me to build this.
+          </p>
+          <p className="story-emphasis" data-reveal>
+            acno is the private, judgment free companion I wish I had had.
+          </p>
+          <p className="story-byline">Matthew, who started acno</p>
+        </section>
 
-      <section className="about-section">
-        <h2 className="about-h2" data-reveal>
-          Where this goes next
-        </h2>
-        <div className="future" data-reveal>
-          <span>Weekly re-scans that show a real progress trend</span>
-          <span>Products matched to your detected skin type</span>
-          <span>A clear handoff to a dermatologist for severe cases</span>
-          <span>The same pipeline for eczema and rosacea</span>
-        </div>
-      </section>
+        <section className="turn shell-narrow">
+          <h2 className="turn-title" data-reveal>
+            So here is exactly how it works.
+          </h2>
+          <p className="turn-sub" data-reveal>
+            No mystery, no black box. Three models read one photo, and none of
+            them ever see the internet.
+          </p>
+        </section>
+      </div>
 
-      <section className="about-section team" data-reveal>
-        <h2 className="about-h2">Made by a team of students</h2>
-        <p className="about-p">
-          Acno is led by Matthew and built by a team of students who care about
-          skin health and self-esteem as much as he does, wanting the first
-          answer about your own skin to be free, private, and honest about its
-          limits.
-        </p>
-        <div className="team-names">
-          {["Matthew", "Travis", "Sophia", "Jocelyn"].map((name) => (
-            <span key={name}>{name}</span>
-          ))}
-        </div>
-        <p className="about-p subtle">
-          With earlier contributions from Alan, Tanner, and Erwin.
-        </p>
-      </section>
+      {/* ================= daybreak ================= */}
 
-      <section className="about-closing" data-reveal>
-        <p className="about-motto">Scan smarter. Skin clearer.</p>
-        <p className="about-p">
-          A first answer, never a diagnosis. Anything severe is always pointed to a
-          real dermatologist.
-        </p>
-        <Link href="/scan" className="button about-cta">
-          Scan your skin
-        </Link>
-      </section>
+      <div className="dawn" id="daybreak" aria-hidden />
+
+      {/* ================= day ================= */}
+
+      <div className="day-zone">
+        <PipelineScene />
+
+        <section className="section shell-narrow">
+          <h2 className="h2" data-reveal>
+            A fourth model writes it up
+          </h2>
+          <p className="prose" data-reveal>
+            Once the three models finish, Gemini turns their output into plain
+            language and looks up current, well reviewed products that match what
+            was found. It only ever receives the numbers. Your photo stays on
+            your device, where it started.
+          </p>
+        </section>
+
+        <section className="section shell-narrow">
+          <h2 className="h2" data-reveal>
+            What the models actually score
+          </h2>
+          <p className="prose" data-reveal>
+            Measured on faces the models never saw while training, on a split we
+            cleaned after finding that the original one leaked. We publish the
+            weak number too, because hiding it would be the dishonest part.
+          </p>
+
+          <div className="numbers">
+            {NUMBERS.map((n) => (
+              <div className="number" key={n.label} data-reveal>
+                <div className="number-value">
+                  <span
+                    data-count={n.value}
+                    data-decimals={n.decimals}
+                    data-suffix={n.suffix}
+                  >
+                    {n.value.toFixed(n.decimals)}
+                    {n.suffix}
+                  </span>
+                </div>
+                <div className="number-bar" style={{ ["--fill" as string]: n.fill }}>
+                  <span />
+                </div>
+                <p className="number-label">{n.label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="section-tight shell-narrow">
+          <div className="honesty" data-reveal>
+            <h2 className="h2">The hard part was never the model</h2>
+            <p className="prose">
+              It was the data. We found that both of our datasets were leaking
+              images between training and testing, which had inflated every
+              accuracy we published before July. We rebuilt the splits and our
+              acne numbers survived. Skin type did not, and it sits near its own
+              baseline because that dataset cannot carry it. Almost none of these
+              photos show dark skin, so we test for that gap openly and we do not
+              claim acno works equally well for everyone yet.
+            </p>
+          </div>
+        </section>
+
+        <section className="section-tight shell-narrow">
+          <div className="privacy" data-reveal>
+            <div className="privacy-mark">
+              <svg
+                viewBox="0 0 24 24"
+                width="30"
+                height="30"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M12 3 4 6 v6 c0 5 3.5 7.5 8 9 4.5 -1.5 8 -4 8 -9 V6 Z" />
+                <path d="M9 12 l2 2 4 -4" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="h2">Your photo stays yours</h2>
+              <p className="prose">
+                There is no server waiting to receive your image. Everything runs
+                inside the page you are looking at, and when you close the tab it
+                is gone. Nothing is stored, and nothing is used to train anything.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="section shell-narrow">
+          <h2 className="h2" data-reveal>
+            Where this goes next
+          </h2>
+          <div className="next-list" data-stagger>
+            {[
+              "Weekly re-scans that show a real progress trend",
+              "A guide translated for newcomer families",
+              "An evaluation set that covers every skin tone",
+              "A clear handoff to a dermatologist for severe cases",
+            ].map((item, index) => (
+              <div className="next-item" key={item}>
+                <span className="next-marker">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                {item}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="section-tight shell-narrow">
+          <h2 className="h2" data-reveal>
+            Made by a team of students
+          </h2>
+          <p className="prose" data-reveal>
+            acno is led by Matthew and built by a team of students who care about
+            skin health and self esteem as much as he does, who wanted the first
+            answer about your own skin to be free, private, and honest about its
+            limits.
+          </p>
+          <div className="team-names" data-stagger>
+            {["Matthew", "Travis", "Sophia", "Jocelyn"].map((name) => (
+              <span key={name}>{name}</span>
+            ))}
+          </div>
+          <p className="prose small" data-reveal>
+            With earlier contributions from Alan, Tanner, and Erwin.
+          </p>
+        </section>
+
+        <section className="closing shell-narrow">
+          <p className="motto" data-reveal>
+            Scan smarter. Skin clearer.
+          </p>
+          <p className="prose" data-reveal>
+            A first answer, never a diagnosis. Anything severe is always pointed
+            to a real dermatologist.
+          </p>
+          <div data-reveal>
+            <Link href="/scan" className="button">
+              Scan your skin
+            </Link>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

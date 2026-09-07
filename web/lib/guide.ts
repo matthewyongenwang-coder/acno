@@ -19,7 +19,7 @@ export interface AcneInfo {
 }
 
 export const DISCLAIMER =
-  "Acno gives educational guidance, not a medical diagnosis. " +
+  "acno gives educational guidance, not a medical diagnosis. " +
   "For severe or persistent acne, please see a dermatologist.";
 
 export const SEVERITY_TEXT: Record<Severity, string> = {
