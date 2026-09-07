@@ -11,10 +11,13 @@ export default function SmoothScroll() {
     if (query.matches) return;
 
     const lenis = new Lenis({
-      duration: 1.05,
+      // How long the page keeps gliding after you stop pushing. This is the
+      // slipperiness dial: higher feels floatier, lower feels like it is
+      // tracking your hand. Keep it under a second or it stops feeling yours.
+      duration: 0.72,
       // Gentle exponential ease out. No overshoot, nothing springy.
       easing: (t: number) => 1 - Math.pow(1 - t, 4),
-      touchMultiplier: 1.4,
+      touchMultiplier: 1.2,
     });
 
     let frame = 0;

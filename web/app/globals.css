@@ -1179,6 +1179,190 @@ video {
   transition: opacity 0.12s ease;
 }
 
+/* ---------- the AI gate, intake form, and causes ---------- */
+
+.gate {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: clamp(1.6rem, 4vw, 2.2rem);
+  margin: 2rem 0 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.gate h3 {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin-bottom: 0.5rem;
+}
+
+.gate p {
+  color: var(--ink-soft);
+  max-width: 52ch;
+  margin-bottom: 1.4rem;
+}
+
+.intake {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: clamp(1.4rem, 4vw, 2.2rem);
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.intake-intro {
+  color: var(--ink-soft);
+  max-width: 56ch;
+  margin-bottom: 1.8rem;
+}
+
+.field {
+  border: none;
+  margin-bottom: 1.8rem;
+}
+
+.field-label {
+  font-size: var(--step-0);
+  font-weight: 600;
+  color: var(--ink);
+  padding: 0;
+  margin-bottom: 0.3rem;
+}
+
+.field-help {
+  color: var(--ink-faint);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  max-width: 56ch;
+  margin-bottom: 0.9rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.chip {
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 500;
+  color: var(--ink-soft);
+  background: var(--bg-soft);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.5rem 1.05rem;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s var(--ease);
+}
+
+.chip:hover {
+  color: var(--ink);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.chip.on {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: oklch(0.99 0.005 160);
+}
+
+.text-input,
+.textarea {
+  width: 100%;
+  font: inherit;
+  font-size: var(--step--1);
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.7rem 0.95rem;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.textarea {
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.text-input::placeholder,
+.textarea::placeholder {
+  color: var(--ink-faint);
+}
+
+.text-input:hover,
+.textarea:hover {
+  border-color: var(--border-strong);
+}
+
+.text-input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+.intake-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.6rem;
+}
+
+.causes {
+  list-style: none;
+  counter-reset: cause;
+  margin-bottom: 1rem;
+}
+
+.cause {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.2rem 1.4rem;
+  margin-bottom: 0.6rem;
+  transition: border-color 0.25s ease, transform 0.25s var(--ease);
+}
+
+.cause:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.cause-index {
+  font-size: var(--step--1);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-strong);
+  line-height: 1.5;
+}
+
+.cause h4 {
+  font-size: var(--step-1);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin-bottom: 0.25rem;
+}
+
+.cause p {
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+  line-height: 1.6;
+}
+
 .spinner {
   width: 28px;
   height: 28px;
