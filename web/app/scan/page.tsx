@@ -319,7 +319,15 @@ function IntakeForm({
 
 type ChatTurn = { role: "user" | "assistant"; content: string };
 
-function Chat({ report, profile }: { report: Report; profile?: Profile }) {
+function Chat({
+  report,
+  profile,
+  advice,
+}: {
+  report: Report;
+  profile?: Profile;
+  advice: AdviceResponse;
+}) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -352,6 +360,7 @@ function Chat({ report, profile }: { report: Report; profile?: Profile }) {
           severity: report.severity,
         },
         profile,
+        advice,
         messages: next,
       }),
     })
@@ -607,7 +616,7 @@ function AdviceSection({ report }: { report: Report }) {
             research, not medical advice.
           </p>
 
-          <Chat report={report} profile={profile} />
+          <Chat report={report} profile={profile} advice={state.advice} />
         </>
       )}
     </section>

@@ -8,7 +8,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 
-import type { Profile } from "@/app/api/advice/route";
+import type { AdviceResponse, Profile } from "@/app/api/advice/route";
 
 export const maxDuration = 45;
 
@@ -34,6 +34,7 @@ How to talk:
 - Do not use emojis, decorative symbols, or em dashes.
 
 What you know and do not know:
+- You are given the report you already wrote them: the analysis, the causes, and the exact routine you recommended, in order. Treat it as yours. If they say "the second one" or "that serum" or "why did you say that", you know what they mean, so answer directly instead of asking which one. If they ask for a change, adjust from what you already gave rather than starting over.
 - You have their scan results and whatever they chose to tell you about themselves. The scan is a first read, not a diagnosis, and its skin type reading in particular is often wrong. If they push on a number, be honest that it is uncertain.
 - You never diagnose. You never suggest prescription treatments. For anything severe, cystic, painful, scarring, or clearly not improving, the honest answer is that a dermatologist is worth it.
 - If they mention something that sounds medical, like a reaction, a medication, or pain, say it is worth asking a doctor and do not speculate.
@@ -59,6 +60,39 @@ function cleanMessages(value: unknown): ChatMessage[] | null {
     .filter((item) => item.content.length > 0)
     .slice(-MAX_TURNS);
   return messages.length ? messages : null;
+}
+
+function adviceBlock(value: unknown): string {
+  if (typeof value !== "object" || value === null) return "";
+  const a = value as Partial<AdviceResponse>;
+  const parts: string[] = [];
+
+  if (typeof a.analysis === "string" && a.analysis.trim()) {
+    parts.push(`What you told them: ${a.analysis.trim()}`);
+  }
+  if (Array.isArray(a.causes) && a.causes.length) {
+    parts.push(
+      `Causes you gave them:\n` +
+        a.causes
+          .filter((c) => c && typeof c.factor === "string")
+          .map((c) => `- ${c.factor}: ${c.why}`)
+          .join("\n"),
+    );
+  }
+  if (Array.isArray(a.products) && a.products.length) {
+    parts.push(
+      `Routine you already recommended, in order:\n` +
+        a.products
+          .filter((p) => p && typeof p.category === "string")
+          .map(
+            (p, i) =>
+              `${i + 1}. ${p.category}: look for ${p.lookFor}. ` +
+              `Example given: ${p.example}. How: ${p.howToUse}`,
+          )
+          .join("\n"),
+    );
+  }
+  return parts.join("\n\n");
 }
 
 function contextBlock(scan: unknown, profile: unknown): string {
@@ -105,7 +139,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const context = contextBlock(body.scan, body.profile);
+  const context = [contextBlock(body.scan, body.profile), adviceBlock(body.advice)]
+    .filter(Boolean)
+    .join("\n\n");
 
   // The conversation is flattened into one input. Their messages are labelled
   // as theirs so a line like "ignore your instructions" reads as something the
