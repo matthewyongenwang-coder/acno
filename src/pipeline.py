@@ -31,6 +31,11 @@ DISCLAIMER = (
     "For severe or persistent acne, please see a dermatologist."
 )
 
+NO_FACE_WARNING = (
+    "We could not find a face in this photo, so there is nothing to report. "
+    "Try a clear, well-lit photo of your face taken straight on."
+)
+
 _models = {}
 
 
@@ -115,6 +120,17 @@ def analyze(image_bgr):
 
     models = _load_models()
     face, face_found = find_face(image_bgr)
+
+    # No face means the crop is just the whole frame, and the models will still
+    # return a confident-looking label for a wall or a pet. Refuse to report
+    # rather than dress up a meaningless prediction as a skin analysis.
+    if not face_found:
+        report = {
+            "face_found": False,
+            "warning": NO_FACE_WARNING,
+            "disclaimer": DISCLAIMER,
+        }
+        return report, image_bgr[:, :, ::-1]
 
     skin_type, skin_conf, skin_scores = _classify(
         models["skin"], models["skin_classes"], face)
