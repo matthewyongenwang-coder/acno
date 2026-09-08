@@ -192,7 +192,24 @@ function decodeYolo(output: ort.Tensor, letterbox: Letterbox, imageW: number, im
   return nonMaxSuppression(raw);
 }
 
-export async function analyze(image: HTMLImageElement): Promise<Report> {
+// onnxruntime-web's wasm backend runs one inference at a time, and the sessions
+// above are a module-level singleton shared by every caller. Awaiting the three
+// runs inside analyzeOnce only keeps *one* call sequential; two overlapping
+// calls (a second photo dropped mid-scan, or a scan still in flight while the
+// page remounts) would still interleave run() on the same session objects.
+// Chaining every call through one promise makes that impossible from anywhere
+// in the app, rather than relying on the UI to disable its own buttons.
+let queue: Promise<unknown> = Promise.resolve();
+
+export function analyze(image: HTMLImageElement): Promise<Report> {
+  const run = queue.then(() => analyzeOnce(image));
+  // keep the chain alive even if this call rejects, so one failure does not
+  // permanently wedge every later scan
+  queue = run.catch(() => {});
+  return run;
+}
+
+async function analyzeOnce(image: HTMLImageElement): Promise<Report> {
   const sessions = await loadSessions();
 
   const clsTensor = classifierTensor(image);

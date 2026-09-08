@@ -424,7 +424,7 @@ function ScanCount() {
     fetch("/api/visits", { method: "POST" })
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
-        if (data && typeof data.count === "number") setCount(data.count);
+        if (data && typeof data.visits === "number") setCount(data.visits);
       })
       .catch(() => {});
   }, []);
@@ -432,7 +432,7 @@ function ScanCount() {
   if (count === null || count <= 0) return null;
   return (
     <p className="scan-count">
-      <strong>{count.toLocaleString("en-CA")}</strong> scans run so far
+      <strong>{count.toLocaleString("en-CA")}</strong> visits so far
     </p>
   );
 }

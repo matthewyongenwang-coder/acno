@@ -11,7 +11,11 @@ type AdviceState =
   | { kind: "form" }
   | { kind: "loading" }
   | { kind: "ready"; advice: AdviceResponse }
-  | { kind: "unavailable" };
+  // "unconfigured" means this deployment has no API key, which is a deliberate
+  // setup choice. "failed" means the guide exists but the request did not work
+  // (quota, network, a malformed model response). These used to collapse into
+  // one state, so a live outage read to users, and to us, as "not configured".
+  | { kind: "unavailable"; reason: "unconfigured" | "failed" };
 
 const AGE_RANGES = [
   "Under 13",
@@ -485,7 +489,16 @@ function AdviceSection({ report }: { report: Report }) {
           return (await response.json()) as AdviceResponse;
         })
         .then((advice) => setState({ kind: "ready", advice }))
-        .catch(() => setState({ kind: "unavailable" }));
+        .catch((error: unknown) => {
+          // 503 is the route's "no GEMINI_API_KEY set" response. Anything else
+          // is a real failure and should read like one, so a broken guide is
+          // reportable rather than looking like an intentional omission.
+          const unconfigured = error instanceof Error && error.message === "503";
+          setState({
+            kind: "unavailable",
+            reason: unconfigured ? "unconfigured" : "failed",
+          });
+        });
     },
     [report],
   );
@@ -499,8 +512,11 @@ function AdviceSection({ report }: { report: Report }) {
     return (
       <section aria-label="AI skin guide">
         <div className="note">
-          The AI guide is not available right now. Everything above still stands,
-          and the routine below is written from your scan.
+          {state.reason === "unconfigured"
+            ? "The AI guide is not set up on this version of Acno."
+            : "The AI guide ran into a problem just now. It is worth trying again in a moment."}{" "}
+          Everything above still stands, and the routine below is written from
+          your scan.
         </div>
       </section>
     );
@@ -635,8 +651,10 @@ function capitalize(word: string): string {
 
 // Tell the privacy-safe counter that one scan completed. Sends nothing but the
 // increment itself, and quietly does nothing if the counter is not configured.
+// The "kind=scan" key is separate from landing-page views so the public number
+// counts real analyses rather than traffic.
 function recordScan() {
-  fetch("/api/visits", { method: "POST" }).catch(() => {});
+  fetch("/api/visits?kind=scan", { method: "POST" }).catch(() => {});
 }
 
 export default function Scan() {
@@ -649,6 +667,12 @@ export default function Scan() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // Bumped every time the camera is started or stopped. getUserMedia is async,
+  // so the user can switch tabs (calling stopCamera while streamRef is still
+  // null) before it resolves. Without this guard the stream that arrives after
+  // that would be stored and never stopped, leaving the webcam live with no
+  // indicator anywhere in the UI.
+  const cameraGenRef = useRef(0);
   const annotatedRef = useRef<HTMLCanvasElement>(null);
 
   // start downloading the models in the background on first visit
@@ -657,6 +681,7 @@ export default function Scan() {
   }, []);
 
   const stopCamera = useCallback(() => {
+    cameraGenRef.current += 1;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     setCameraOn(false);
@@ -702,10 +727,17 @@ export default function Scan() {
   );
 
   const startCamera = useCallback(async () => {
+    const generation = cameraGenRef.current;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
       });
+      if (cameraGenRef.current !== generation) {
+        // the user left the camera tab (or unmounted) while the permission
+        // prompt was open; drop this stream instead of orphaning it
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
       setCameraOn(true);
       // the video element renders on the next tick
@@ -912,6 +944,11 @@ export default function Scan() {
               <div className="label">Skin type</div>
               <div className="value">{capitalize(report.skinType)}</div>
               <div className="sub">{Math.round(report.skinTypeConfidence * 100)}% confident</div>
+              {/* This model scores about 44% against a 37.7% majority baseline
+                  and swings several points between training runs. Showing a
+                  bare confidence number next to the far stronger acne model
+                  implied the two were equally trustworthy. See docs/RESULTS.md. */}
+              <div className="sub">Least reliable part of this scan, treat it as a rough guess</div>
             </div>
             <div className="card">
               <div className="label">Severity</div>
