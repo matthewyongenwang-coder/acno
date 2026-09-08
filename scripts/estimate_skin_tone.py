@@ -39,8 +39,13 @@ import acno_data
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RESULTS = REPO_ROOT / "results"
-SCRATCH = Path("/private/tmp/claude-501/-Users-matthewwang/"
-               "f2ca490c-47b6-49d2-8c8d-84f756964e11/scratchpad")
+# Contact sheets go here. This used to be a hardcoded absolute path inside one
+# Claude Code session's scratch directory, which no longer exists: the sheets
+# were written somewhere nobody would ever look, silently defeating the
+# "always eyeball the contact sheets before trusting a number" rule that both
+# the leak scan and the fairness review depend on. Keep it in the repo, under
+# the already-gitignored results/ tree, so it survives across sessions.
+SCRATCH = RESULTS / "qa"
 
 # ITA cut points, lightest first. Standard dermatology bands, collapsed to four groups
 # because finer bins would leave too few images per group to say anything.

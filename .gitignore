@@ -45,3 +45,11 @@ Thumbs.db
 # Never commit real user photos, including team selfies used for testing
 test_photos/
 selfies/
+
+# Team-material holds shared exports handed round the team. The only file we
+# deliberately track is the shareable notebook, whose outputs are cleared. The
+# rest are raw exports: slide/doc PDFs (one is 163MB, over GitHub's 100MB file
+# limit) and notebooks that still carry output images of real faces. Ignoring
+# them keeps an absent-minded "git add -A" from committing either.
+Team-material/*
+!Team-material/Acno AI training notebook (shareable).ipynb
