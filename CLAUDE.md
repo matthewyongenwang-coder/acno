@@ -54,17 +54,24 @@ fit the reasoning/research bar better than paying for Opus.
 Known inconsistency: src/pipeline.py crops to a detected face before classifying, but
 web/lib/analyze.ts (what users actually run) classifies the whole photo. The shipped
 models are trained on whole images to match the browser. Training on face crops scores
-several points higher, but adopting it means shipping a face detector in the browser.
+several points higher, but adopting it means classifying a crop, and the shipped weights
+expect whole frames.
+
+There IS now a face detector in the browser (YuNet, web/lib/face.ts), but it is an input
+GATE, not a crop: it decides whether the photo shows skin at all. Do not start cropping
+to it without retraining, or every prediction silently changes.
 
 Shipped models (July 2026), all measured on the strict leak-free split. These are a
 summary only; docs/RESULTS.md is the canonical source and is regenerated from the
 experiment ledger. If a number here disagrees with RESULTS.md, RESULTS.md is right.
 - acne_type  98.8% with TTA (baseline 26.8%), MobileNetV3-Large, mirror TTA baked
-  into the graph. Caveat: a frozen ImageNet linear probe reaches 81.9% on this
-  dataset (docs/DATA_QUALITY.md), which is far above what generic features should
-  achieve on 5-class lesion morphology. That points at a possible non-lesion
-  shortcut the strict split may not have removed. Do not present this number as
-  settled until the probe is re-run on the strict split.
+  into the graph. TREAT THIS AS AN UPPER BOUND, NOT FIELD ACCURACY: a frozen
+  ImageNet probe, fine-tuned on nothing, scores 73.5% on the same strict split
+  against that 26.8% baseline, and still scores 63.9% with the middle half of
+  every image blanked out, where the lesion has to be. The class is largely
+  predictable from colour and background, not lesions. See docs/DATA_QUALITY.md.
+  Do not "fix" this with a source-aware resplit; the signal is class-level, not
+  duplicate-level, so a resplit will not move it.
 - skin_type  ~44% and unstable (baseline 37.7%), MobileNetV3-Large
 - acne_yolo  0.666 mAP50 on test, UNCHANGED. A 120-epoch retrain scored worse (0.641)
   so the original weights were kept.

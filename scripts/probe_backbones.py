@@ -12,6 +12,7 @@ Run:
     .venv/bin/python scripts/probe_backbones.py
 """
 
+import argparse
 import json
 from pathlib import Path
 
@@ -53,52 +54,90 @@ def embed(backbone: str, x: np.ndarray, batch: int = 64) -> np.ndarray:
     return feats
 
 
-def probe(dataset: str) -> list[dict]:
+def baseline(y: np.ndarray, n_classes: int) -> float:
+    counts = np.bincount(y, minlength=n_classes)
+    return float(counts.max() / counts.sum())
+
+
+def probe(dataset: str, backbones: list[str]) -> list[dict]:
     splits = acno_data.load_splits(dataset)
     classes = splits["classes"]
     rows = []
 
-    print(f"\n{'=' * 78}\n{dataset}  ({len(classes)} classes: {', '.join(classes)})\n{'=' * 78}")
-    counts = np.bincount(splits["clean_test"]["y"], minlength=len(classes))
-    print(f"clean-test majority baseline: {counts.max() / counts.sum():.1%}\n")
-    print(f"{'backbone':<18}{'dim':>6}{'valid':>9}{'test':>9}{'clean':>9}{'cleanF1':>10}")
-    print("-" * 78)
+    # strict_test only exists once scripts/leak_scan.py has run. It is the split
+    # that matters most here: clean_test still contains feature-space duplicates,
+    # so a high probe score there proves nothing. A high score on strict_test,
+    # where the near-identical copies are gone, means the frozen features are
+    # reading something other than the lesions.
+    evaluated = ["valid", "test", "clean_test"]
+    if "strict_test" in splits:
+        evaluated.append("strict_test")
 
-    for name in CANDIDATES:
-        feats = {s: embed(name, splits[s]["x"]) for s in
-                 ["train", "valid", "test", "clean_test"]}
+    print(f"\n{'=' * 88}\n{dataset}  ({len(classes)} classes: {', '.join(classes)})\n{'=' * 88}")
+    for split in evaluated:
+        print(f"{split:<12} n={len(splits[split]['y']):<6} "
+              f"majority baseline {baseline(splits[split]['y'], len(classes)):.1%}")
+    print()
+    header = f"{'backbone':<18}{'dim':>6}{'valid':>9}{'test':>9}{'clean':>9}"
+    if "strict_test" in splits:
+        header += f"{'strict':>9}"
+    print(header)
+    print("-" * 88)
+
+    for name in backbones:
+        feats = {s: embed(name, splits[s]["x"]) for s in ["train"] + evaluated}
         clf = LogisticRegression(max_iter=3000, C=1.0, class_weight="balanced")
         clf.fit(feats["train"], splits["train"]["y"])
 
         scores = {}
-        for split in ["valid", "test", "clean_test"]:
+        for split in evaluated:
             pred = clf.predict(feats[split])
             scores[split] = {
                 "accuracy": float((pred == splits[split]["y"]).mean()),
                 "macro_f1": float(f1_score(splits[split]["y"], pred,
                                            average="macro", zero_division=0)),
+                "n": int(len(splits[split]["y"])),
+                "majority_baseline": baseline(splits[split]["y"], len(classes)),
             }
         rows.append({"dataset": dataset, "backbone": name,
                      "feature_dim": int(feats["train"].shape[1]), "scores": scores})
-        print(f"{name:<18}{feats['train'].shape[1]:>6}"
-              f"{scores['valid']['accuracy']:>9.3f}"
-              f"{scores['test']['accuracy']:>9.3f}"
-              f"{scores['clean_test']['accuracy']:>9.3f}"
-              f"{scores['clean_test']['macro_f1']:>10.3f}")
+        line = (f"{name:<18}{feats['train'].shape[1]:>6}"
+                f"{scores['valid']['accuracy']:>9.3f}"
+                f"{scores['test']['accuracy']:>9.3f}"
+                f"{scores['clean_test']['accuracy']:>9.3f}")
+        if "strict_test" in scores:
+            line += f"{scores['strict_test']['accuracy']:>9.3f}"
+        print(line)
 
-    best = max(rows, key=lambda r: r["scores"]["clean_test"]["accuracy"])
-    print(f"\nbest linear probe: {best['backbone']} "
-          f"at {best['scores']['clean_test']['accuracy']:.1%} clean-test accuracy")
+    if "strict_test" in evaluated:
+        best = max(rows, key=lambda r: r["scores"]["strict_test"]["accuracy"])
+        base = best["scores"]["strict_test"]["majority_baseline"]
+        acc = best["scores"]["strict_test"]["accuracy"]
+        print(f"\nbest frozen probe on strict_test: {best['backbone']} at {acc:.1%} "
+              f"against a {base:.1%} majority baseline "
+              f"({acc - base:+.1%} over baseline)")
+        print("A frozen ImageNet probe should sit near baseline on a task that needs")
+        print("lesion morphology. Well above it means a non-lesion shortcut survives")
+        print("the strict split, and the fine-tuned number is suspect.")
     return rows
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dataset", choices=["skin_type", "acne_type"], action="append",
+                        help="repeatable; defaults to both")
+    parser.add_argument("--backbones", nargs="+", default=CANDIDATES,
+                        help=f"subset of {CANDIDATES}")
+    parser.add_argument("--out", default="backbone_probe.json",
+                        help="filename under results/")
+    args = parser.parse_args()
+
     set_seeds()
     RESULTS.mkdir(parents=True, exist_ok=True)
     all_rows = []
-    for dataset in ["skin_type", "acne_type"]:
-        all_rows.extend(probe(dataset))
-    out = RESULTS / "backbone_probe.json"
+    for dataset in args.dataset or ["skin_type", "acne_type"]:
+        all_rows.extend(probe(dataset, args.backbones))
+    out = RESULTS / args.out
     out.write_text(json.dumps(all_rows, indent=2))
     print(f"\nwrote {out}")
 

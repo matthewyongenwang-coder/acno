@@ -7,11 +7,34 @@ are, what they should not be used for, and where they fail.
 ## What Acno is
 
 A free web app that gives a teenager a private first answer about their skin. The user
-takes or uploads a photo; three models run entirely in their browser and report skin
-type, acne type and a lesion count that maps to a severity band. A fourth step sends
-the resulting numbers, never the photo, to Gemini to write a personalised guide.
+takes or uploads a photo; an input gate checks the photo actually shows skin, then three
+models run entirely in their browser and report skin type, acne type and a lesion count
+that maps to a severity band. A fourth step sends the resulting numbers, never the photo,
+to Gemini to write a personalised guide.
 
 Photos never leave the device. There is no upload, no account and no storage.
+
+## The input gate
+
+None of the three models has a "none of the above" class, so argmax always names a skin
+type, an acne type and a severity, even for a photo of a wall. Before September 2026 the
+app printed that as a real report. Now a photo has to pass one of two checks first:
+
+| Signal | What it is | Fires on |
+|---|---|---|
+| face | YuNet (232KB ONNX), same model in the browser and in `src/pipeline.py` | 92% of face photos, 4.3% of acne close-ups |
+| skin | Fraction of the frame passing the YCrCb + CIELAB skin test in `src/skin.py`, threshold 0.10 | close-ups, where no face is visible |
+
+A photo passes if **either** fires. A face alone cannot be required, because most
+legitimate close-ups of a cheek contain no detectable face. Calibrated on 300 random
+images per dataset in `scripts/calibrate_face_gate.py`: the combined gate passes 100% of
+skin_type photos and 98.7% of acne_type close-ups, while every non-skin negative tested
+(solid colours, plot images, random noise) scores 0.069 or below.
+
+The gate is deliberately soft. A photo that fails is not analysed, but the person can
+choose to see the result anyway, in which case the report is labelled unverified and the
+AI write-up is withheld. It is a gate, not a crop: the classifiers are trained on whole
+images, so cropping to the detected face would break train/serve parity.
 
 ## The three models
 
@@ -44,6 +67,15 @@ Read [DATA_QUALITY.md](DATA_QUALITY.md) before trusting any number. In short: bo
 classifier datasets had substantial overlap between their training and test splits, so
 every accuracy figure published for them before this audit, including our own earlier
 numbers, was optimistic.
+
+**acne_type's 98.8% is an upper bound, not field accuracy.** A frozen ImageNet backbone,
+trained on nothing, scores 73.5% on the same strict split against a 26.8% baseline, while
+the same probe sits below baseline on skin_type. Blank out the middle half of every image,
+where the lesion has to be, and the probe still scores 63.9%, so nearly 80% of its
+advantage survives deleting the thing it is supposed to be classifying. The class is
+largely predictable from colour and background outside the lesion. The strict split cannot
+remove that, because it is shared across a whole class rather than tied to duplicate
+images. Do not present 98.8% as how well Acno reads a stranger's face.
 
 ## Intended use
 

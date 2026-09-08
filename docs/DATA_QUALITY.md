@@ -116,6 +116,93 @@ on this dataset. The signal is genuinely weak, not merely hard to reach.
 For contrast, the same probe on acne_type reaches 81.9%. The method is fine. The
 skin_type labels are the problem.
 
+### The same contrast, read the other way round: acne_type has a shortcut
+
+That 81.9% was measured on acne_type's clean split, which is still heavily leaked, so
+on its own it proves nothing. Re-running the probe on the **strict** split settles it
+(September 2026):
+
+| Dataset, strict split | Frozen probe | Majority baseline | Gap |
+|---|---|---|---|
+| skin_type | 32.5% | 37.7% | **-5.3** |
+| acne_type | 73.5% | 26.8% | **+46.7** |
+
+A frozen ImageNet backbone has been fine-tuned on nothing and has never seen an acne
+photo. On a task that genuinely requires lesion morphology it should land near the
+baseline, which is exactly what it does on skin_type. On acne_type it beats the
+baseline by 46.7 points, so **something in these images predicts the class without
+looking at the acne.**
+
+### What the probe is actually reading
+
+Rather than assume the cause, we tested it. `scripts/probe_shortcut.py` refits the same
+frozen probe on images with one kind of information destroyed at a time. If accuracy
+survives a condition, the probe never needed what that condition removed.
+
+| Condition | What survives it | Accuracy | Over baseline |
+|---|---|---|---|
+| original | everything | 73.5% | +46.7 |
+| **border** | **centre half blanked out** | **63.9%** | **+37.1** |
+| blur | colour and layout, no lesion texture | 58.9% | +32.1 |
+| tiny | 16x16, gross colour and layout only | 56.1% | +29.3 |
+| edges | structure only, colour removed | 46.7% | +19.9 |
+
+**The `border` row is the result.** It blanks out the middle half of the frame, which is
+where the lesion the label refers to has to be, and the probe still scores 63.9%. Nearly
+80% of its advantage over the baseline survives deleting the thing it is supposed to be
+classifying. `tiny` says the same thing from the other side: at 16x16 there is no lesion
+left to see at all, and the probe is still 29 points above baseline.
+
+That rules out the most reasonable innocent explanation, which is that cysts really are
+bigger and redder than blackheads and a generic backbone can pick that up honestly.
+Coarse lesion appearance is a real signal, but it cannot be what is driving these
+numbers, because it is gone in `border` and `tiny` and the numbers stay high.
+
+The `edges` row locates the rest: strip colour and the score falls furthest, to +19.9.
+So the shortcut is mostly **colour and background statistics outside the lesion**,
+consistent with the dataset's history: it was exported from Roboflow with augmentation
+applied *before* the train/test split, and each class was collected as a batch, which
+leaves a per-class signature in lighting, camera and framing.
+
+The strict split removes near-duplicate *images*. It cannot remove a property shared by
+every image of a class, which is why the effect survives it.
+
+One caveat on what "strict" means here. The split is defined by nearest-neighbour
+similarity in **efficientnetv2b1** feature space (`scripts/leak_scan.py`, default
+backbone), while the probe above runs on **mobilenetv3large** features. Two images can
+sit below the 0.92 cutoff in one space and still be close in the other, so "strict"
+means "no near-duplicate that efficientnetv2b1 could see", not "leak-free in general".
+That cannot explain a 46.7 point gap on its own, but it is worth knowing when quoting
+the word "strict".
+
+What this does and does not mean:
+
+- It does **not** mean the shipped model is broken. It means the 98.8% figure measures
+  performance on a benchmark that is easier than reality, so it is an upper bound and
+  should never be quoted as field accuracy.
+- It does **not** apply to skin_type, whose low score is honest difficulty, or to the
+  lesion detector, which is not a classifier and was not probed.
+- A **source-aware resplit is not the fix**, which is worth saying because it was our
+  first instinct. Grouping by capture session or perceptual-hash cluster only removes
+  leakage tied to specific duplicate clusters. The `border` result shows the signal is
+  shared across a whole class, so every group would still carry it and the number would
+  not move. Fixing a class-level background signature needs the background gone or made
+  uninformative: train and evaluate on lesion-region crops, or force invariance with
+  aggressive colour and background augmentation, or get a dataset that was not collected
+  one class at a time. Measure any of those with this same probe: the goal is to drive
+  the frozen-probe score down toward baseline, and only then is the fine-tuned number
+  meaningful.
+
+Reproduce:
+
+```bash
+.venv/bin/python scripts/probe_backbones.py --dataset acne_type \
+  --backbones mobilenetv3large --out probe_strict_acne.json
+.venv/bin/python scripts/probe_backbones.py --dataset skin_type \
+  --backbones mobilenetv3large --out probe_strict_skin.json
+.venv/bin/python scripts/probe_shortcut.py
+```
+
 ## 3. Baselines every number should be read against
 
 "Accuracy" means nothing without the score for ignoring the image entirely and always
