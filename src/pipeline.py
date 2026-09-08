@@ -19,8 +19,11 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from src.skin import FACE_SCORE_THRESHOLD, SKIN_FRACTION_THRESHOLD, skin_fraction
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = REPO_ROOT / "models"
+FACE_DETECTOR = REPO_ROOT / "web" / "public" / "models" / "face_detector.onnx"
 RULES_CSV = REPO_ROOT / "data" / "guide_rules.csv"
 ACNE_INFO_CSV = REPO_ROOT / "data" / "acne_type_info.csv"
 
@@ -31,9 +34,10 @@ DISCLAIMER = (
     "For severe or persistent acne, please see a dermatologist."
 )
 
-NO_FACE_WARNING = (
-    "We could not find a face in this photo, so there is nothing to report. "
-    "Try a clear, well-lit photo of your face taken straight on."
+NOT_SKIN_WARNING = (
+    "We could not find a face in this photo, and very little of the frame looks "
+    "like skin, so there is nothing to report. Try a clear, well-lit photo of "
+    "your face, or a close-up of the patch of skin you are asking about."
 )
 
 _models = {}
@@ -55,24 +59,38 @@ def _load_models():
     return _models
 
 
+def _load_face_detector():
+    if "face" not in _models:
+        _models["face"] = cv2.FaceDetectorYN.create(
+            str(FACE_DETECTOR), "", (640, 640), FACE_SCORE_THRESHOLD, 0.3, 5000)
+    return _models["face"]
+
+
 def find_face(image_bgr):
     """Find the largest face and return a slightly padded crop.
 
     Returns (crop, found). If no face is detected we analyze the whole image
     and let the report say so.
+
+    Uses YuNet rather than the old Haar cascade, so this agrees with the browser
+    (web/lib/face.ts runs the same ONNX file). Haar missed faces at any angle and
+    could not be run in the browser without shipping all of OpenCV.
     """
-    cascade = cv2.CascadeClassifier(
-        cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
-    faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5,
-                                     minSize=(80, 80))
-    if len(faces) == 0:
+    detector = _load_face_detector()
+    h, w = image_bgr.shape[:2]
+    detector.setInputSize((w, h))
+    _, faces = detector.detect(image_bgr)
+    if faces is None or len(faces) == 0:
         return image_bgr, False
-    x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
-    pad_w, pad_h = int(w * 0.15), int(h * 0.15)
+
+    # faces rows are [x, y, w, h, 5 landmark pairs..., score]
+    x, y, fw, fh = (int(v) for v in max(faces, key=lambda f: f[2] * f[3])[:4])
+    pad_w, pad_h = int(fw * 0.15), int(fh * 0.15)
     x0, y0 = max(0, x - pad_w), max(0, y - pad_h)
-    x1 = min(image_bgr.shape[1], x + w + pad_w)
-    y1 = min(image_bgr.shape[0], y + h + pad_h)
+    x1 = min(w, x + fw + pad_w)
+    y1 = min(h, y + fh + pad_h)
+    if x1 <= x0 or y1 <= y0:
+        return image_bgr, False
     return image_bgr[y0:y1, x0:x1], True
 
 
@@ -121,13 +139,17 @@ def analyze(image_bgr):
     models = _load_models()
     face, face_found = find_face(image_bgr)
 
-    # No face means the crop is just the whole frame, and the models will still
-    # return a confident-looking label for a wall or a pet. Refuse to report
-    # rather than dress up a meaningless prediction as a skin analysis.
-    if not face_found:
+    # The classifiers have no "none of the above" class, so argmax names a skin
+    # type even for a photo of a wall. Gate on two signals before reporting:
+    # a detected face, or enough of the frame looking like skin. A face alone is
+    # not enough, because it only fires on 4.3% of legitimate acne close-ups.
+    skin = skin_fraction(image_bgr)
+    if not face_found and skin < SKIN_FRACTION_THRESHOLD:
         report = {
             "face_found": False,
-            "warning": NO_FACE_WARNING,
+            "skin_fraction": round(skin, 4),
+            "gate_passed": False,
+            "warning": NOT_SKIN_WARNING,
             "disclaimer": DISCLAIMER,
         }
         return report, image_bgr[:, :, ::-1]
@@ -148,6 +170,8 @@ def analyze(image_bgr):
 
     report = {
         "face_found": face_found,
+        "skin_fraction": round(skin, 4),
+        "gate_passed": True,
         "skin_type": skin_type,
         "skin_type_confidence": round(skin_conf, 3),
         "skin_type_scores": skin_scores,

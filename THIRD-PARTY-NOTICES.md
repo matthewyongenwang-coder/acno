@@ -29,6 +29,18 @@ onnxruntime-web (MIT).
   on ImageNet. ImageNet's own terms allow non-commercial research use, so treat these
   weights as educational and non-commercial.
 
+## Face detector weights (MIT)
+
+- File: `web/public/models/face_detector.onnx`
+- YuNet, `face_detection_yunet_2023mar.onnx`, taken unmodified from the OpenCV Zoo
+  (https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet),
+  which is MIT licensed. SHA-256
+  `8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4`.
+- Authored by Wei Wu, Yuantao Feng and Shiqi Yu. Cited in CITATIONS.md.
+- Used only to decide whether a photo contains a face before analysing it. It is
+  never used to identify anyone, and like every other model here it runs in the
+  browser: no photo is uploaded.
+
 ## Training datasets
 
 Dataset images are never committed to this repository; `scripts/download_data.py`

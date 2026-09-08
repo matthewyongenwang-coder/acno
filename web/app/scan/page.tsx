@@ -661,6 +661,9 @@ export default function Scan() {
   const [tab, setTab] = useState<"upload" | "camera">("upload");
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
   const [dragging, setDragging] = useState(false);
+  // The gate holds the report back when the photo does not look like skin.
+  // Acknowledging is per-scan, so a new photo asks again.
+  const [gateAccepted, setGateAccepted] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
   const [flashing, setFlashing] = useState(false);
   const [flashOn, setFlashOn] = useState(true);
@@ -779,7 +782,13 @@ export default function Scan() {
     window.setTimeout(grab, 350);
   }, [flashOn, handleBlob, stopCamera]);
 
-  // draw the analyzed photo with lesion boxes
+  useEffect(() => {
+    setGateAccepted(false);
+  }, [stage]);
+
+  // Draw the analyzed photo with lesion boxes. gateAccepted is a dependency
+  // because the canvas only mounts once the report is shown, so accepting the
+  // gate has to trigger a redraw or it stays blank.
   useEffect(() => {
     if (stage.kind !== "done") return;
     const canvas = annotatedRef.current;
@@ -796,9 +805,10 @@ export default function Scan() {
     for (const box of report.boxes) {
       ctx.strokeRect(box.x, box.y, box.width, box.height);
     }
-  }, [stage]);
+  }, [stage, gateAccepted]);
 
   const report = stage.kind === "done" ? stage.report : null;
+  const heldByGate = report !== null && !report.gate.passed && !gateAccepted;
 
   return (
     <main className="tool">
@@ -929,15 +939,61 @@ export default function Scan() {
         </div>
       )}
 
+      {heldByGate && report && (
+        <section aria-label="Check the photo" className="status">
+          <h2 className="section-title">This does not look like skin</h2>
+          <div className="note">
+            <p>
+              We could not find a face in this photo, and very little of the
+              frame looks like skin. The models have no way to say &quot;that is
+              not skin&quot;: they will always name a skin type and a severity,
+              even for a photo of a wall, so a report from this photo would look
+              confident and mean nothing.
+            </p>
+            <p>
+              Try a clear, well-lit photo of your face, or a close-up of the
+              patch of skin you are asking about.
+            </p>
+          </div>
+          <div className="intake-actions gate-actions">
+            <button
+              type="button"
+              className="button"
+              onClick={() => {
+                setStage({ kind: "idle" });
+                setGateAccepted(false);
+              }}
+            >
+              Try another photo
+            </button>
+            <button
+              type="button"
+              className="button quiet"
+              onClick={() => setGateAccepted(true)}
+            >
+              Show it anyway
+            </button>
+          </div>
+        </section>
+      )}
+
       {stage.kind === "error" && (
         <div className="derm" role="alert" style={{ marginTop: "1rem" }}>
           {stage.message}
         </div>
       )}
 
-      {report && (
+      {report && !heldByGate && (
         <section aria-label="Your skin report">
           <h2 className="section-title">Your skin report</h2>
+
+          {!report.gate.passed && (
+            <div className="note unverified">
+              You chose to see this anyway. We could not confirm there is skin in
+              the photo, so treat everything below as meaningless unless you know
+              the photo is of your skin.
+            </div>
+          )}
 
           <div className="row">
             <div className="card">
@@ -990,7 +1046,7 @@ export default function Scan() {
             <p>{report.routine.avoid}</p>
           </div>
 
-          <AdviceSection report={report} />
+          {report.gate.passed && <AdviceSection report={report} />}
 
           {report.seeDermatologist && (
             <div className="derm">

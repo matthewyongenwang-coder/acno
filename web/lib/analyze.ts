@@ -5,6 +5,14 @@
 import * as ort from "onnxruntime-web";
 
 import {
+  decodeFace,
+  faceTensor,
+  passesGate,
+  skinFraction,
+  type FaceCheck,
+} from "./face";
+
+import {
   ACNE_INFO,
   DISCLAIMER,
   ROUTINES,
@@ -46,12 +54,24 @@ export interface Report {
   routine: Routine;
   boxes: Box[];
   disclaimer: string;
+  /**
+   * Whether the photo looks like skin at all. When `passed` is false, every
+   * field above is the models' best guess about something that may not be skin,
+   * and the UI must say so rather than presenting it as a reading. See
+   * lib/face.ts for why this is two signals and not just a face detector.
+   */
+  gate: {
+    face: FaceCheck;
+    skinFraction: number;
+    passed: boolean;
+  };
 }
 
 let sessionsPromise: Promise<{
   skin: ort.InferenceSession;
   acne: ort.InferenceSession;
   yolo: ort.InferenceSession;
+  face: ort.InferenceSession;
 }> | null = null;
 
 function loadSessions() {
@@ -62,12 +82,14 @@ function loadSessions() {
       executionProviders: ["wasm"],
     };
     sessionsPromise = (async () => {
-      const [skin, acne, yolo] = await Promise.all([
+      const [skin, acne, yolo, face] = await Promise.all([
         ort.InferenceSession.create("/models/skin_type.onnx", options),
         ort.InferenceSession.create("/models/acne_type.onnx", options),
         ort.InferenceSession.create("/models/acne_yolo.onnx", options),
+        // 232KB next to the others' 46MB, so it costs nothing to always load
+        ort.InferenceSession.create("/models/face_detector.onnx", options),
       ]);
-      return { skin, acne, yolo };
+      return { skin, acne, yolo, face };
     })();
     sessionsPromise.catch(() => {
       sessionsPromise = null; // allow a retry after a failed load
@@ -214,8 +236,20 @@ async function analyzeOnce(image: HTMLImageElement): Promise<Report> {
 
   const clsTensor = classifierTensor(image);
   const { tensor: detTensor, letterbox } = yoloTensor(image);
+  const { tensor: faceInput, letterbox: faceBox } = faceTensor(image);
 
   // the wasm backend runs one inference at a time; keep these sequential
+  const faceOut = await sessions.face.run({ [sessions.face.inputNames[0]]: faceInput });
+  const face = decodeFace(
+    faceOut as Record<string, ort.Tensor>,
+    faceBox,
+    image.naturalWidth,
+    image.naturalHeight,
+  );
+
+  const skinShare = skinFraction(image);
+  const gate = { face, skinFraction: skinShare, passed: passesGate(face, skinShare) };
+
   const skinOut = await sessions.skin.run({ [sessions.skin.inputNames[0]]: clsTensor });
   const acneOut = await sessions.acne.run({ [sessions.acne.inputNames[0]]: clsTensor });
   const yoloOut = await sessions.yolo.run({ [sessions.yolo.inputNames[0]]: detTensor });
@@ -245,5 +279,6 @@ async function analyzeOnce(image: HTMLImageElement): Promise<Report> {
     routine: ROUTINES[skinType][severity],
     boxes,
     disclaimer: DISCLAIMER,
+    gate,
   };
 }

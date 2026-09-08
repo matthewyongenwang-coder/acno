@@ -67,6 +67,21 @@ npm run dev
 The ONNX models are committed at `web/public/models/` (converted from the trained
 weights, see below), so the app works straight from a fresh clone.
 
+### The input gate
+
+The three models have no "none of the above" class, so on their own they will name a
+skin type and a severity for a photo of a wall. Before analysing anything the app checks
+the photo shows skin, using either a face detector (YuNet, 232KB, in the browser like
+everything else) or the fraction of the frame that passes a skin-colour test. Either one
+is enough, because most legitimate close-ups of a cheek contain no detectable face.
+
+If neither fires, the app says so instead of showing a report. You can still choose to
+see it, in which case it is labelled unverified and the AI write-up is withheld.
+
+Thresholds are calibrated, not guessed: `scripts/calibrate_face_gate.py` measures 300
+random images per dataset plus non-skin negatives and writes
+`results/face_gate_calibration.json`. See [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
+
 ### The AI guide (optional but worth it)
 
 Alongside the three vision models, the app can ask an AI language model to write

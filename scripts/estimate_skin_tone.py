@@ -29,6 +29,7 @@ Run:
 """
 
 import json
+import sys
 from pathlib import Path
 
 import cv2
@@ -36,6 +37,12 @@ import numpy as np
 from PIL import Image
 
 import acno_data
+
+# skin_mask lives in src/skin.py so the fairness review, the input gate and the
+# browser all share one definition. Re-exported here because fairness_eval.py
+# and calibrate_face_gate.py import it from this module.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from src.skin import skin_mask  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RESULTS = REPO_ROOT / "results"
@@ -56,28 +63,6 @@ TONE_BANDS = [
     ("dark", -200.0, -30.0),
 ]
 MIN_SKIN_PIXELS = 200
-
-
-def skin_mask(bgr: np.ndarray) -> np.ndarray:
-    """Boolean mask of likely skin pixels.
-
-    YCrCb thresholds separate skin from background better than RGB. We additionally
-    require a positive CIELAB b*, because skin is always yellowish: pink backgrounds,
-    grey clothing and red annotation arrows are not, and letting them through was what
-    put pale close-ups into the "dark" bin on the first attempt.
-    """
-    ycrcb = cv2.cvtColor(bgr, cv2.COLOR_BGR2YCrCb)
-    y, cr, cb = ycrcb[..., 0], ycrcb[..., 1], ycrcb[..., 2]
-    lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
-    a_star = lab[..., 1].astype(np.int16) - 128
-    b_star = lab[..., 2].astype(np.int16) - 128
-
-    return (
-        (cr >= 133) & (cr <= 180) & (cb >= 77) & (cb <= 127)
-        & (y >= 30) & (y <= 240)          # drop crushed blacks and blown highlights
-        & (b_star >= 6)                   # skin is yellowish; pink/grey things are not
-        & (a_star >= 3) & (a_star <= 45)   # plausible red component for skin
-    )
 
 
 def image_ita(bgr: np.ndarray) -> float | None:

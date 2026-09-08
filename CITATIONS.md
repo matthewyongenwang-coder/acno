@@ -78,10 +78,18 @@ class counts, splits, and known risks.
   *ICCV*, 2017.
 - Used in the training notebook to show where the skin-type model looks.
 
-### 2.7 Haar cascade face detection
-- Viola, P., Jones, M. "Rapid Object Detection using a Boosted Cascade of Simple
-  Features." *CVPR*, 2001.
-- We use OpenCV's `haarcascade_frontalface_default.xml` to crop the face before analysis.
+### 2.7 Face detection (input gate)
+- Wu, W., Peng, H., Yu, S. "YuNet: A Tiny Millisecond-level Face Detector."
+  *Machine Intelligence Research*, 2023.
+  https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet
+- We use YuNet (`face_detection_yunet_2023mar`) to decide whether a photo contains a
+  face before analysing it, in both the Python pipeline and the browser. It replaced
+  the Haar cascade below in September 2026: Haar missed faces at any angle and could
+  not run in the browser without shipping all of OpenCV.
+- Never used to identify anyone. It answers "is there a face here", nothing else.
+
+- Superseded: Viola, P., Jones, M. "Rapid Object Detection using a Boosted Cascade of
+  Simple Features." *CVPR*, 2001. OpenCV's `haarcascade_frontalface_default.xml`.
 
 ### 2.8 Fitzpatrick17k (recommended for fairness auditing)
 - Groh, M., Harris, C., Soenksen, L., et al. "Evaluating Deep Neural Networks Trained

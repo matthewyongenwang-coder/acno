@@ -1921,3 +1921,16 @@ footer {
     padding-block: 1.5rem;
   }
 }
+
+/* The input gate. Shown instead of a report when the photo does not look like
+   skin, and as a banner on the report if the person chose to see it anyway. */
+.gate-actions {
+  justify-content: center;
+}
+
+.note.unverified {
+  background: var(--warm-bg);
+  border: 1px solid var(--warm-border);
+  color: var(--warm-ink);
+  margin-bottom: 1.2rem;
+}
