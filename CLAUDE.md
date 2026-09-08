@@ -56,8 +56,15 @@ web/lib/analyze.ts (what users actually run) classifies the whole photo. The shi
 models are trained on whole images to match the browser. Training on face crops scores
 several points higher, but adopting it means shipping a face detector in the browser.
 
-Shipped models (July 2026), all measured on the strict leak-free split:
-- acne_type  97.5% (baseline 26.8%), MobileNetV3-Large, mirror TTA baked into the graph
+Shipped models (July 2026), all measured on the strict leak-free split. These are a
+summary only; docs/RESULTS.md is the canonical source and is regenerated from the
+experiment ledger. If a number here disagrees with RESULTS.md, RESULTS.md is right.
+- acne_type  98.8% with TTA (baseline 26.8%), MobileNetV3-Large, mirror TTA baked
+  into the graph. Caveat: a frozen ImageNet linear probe reaches 81.9% on this
+  dataset (docs/DATA_QUALITY.md), which is far above what generic features should
+  achieve on 5-class lesion morphology. That points at a possible non-lesion
+  shortcut the strict split may not have removed. Do not present this number as
+  settled until the probe is re-run on the strict split.
 - skin_type  ~44% and unstable (baseline 37.7%), MobileNetV3-Large
 - acne_yolo  0.666 mAP50 on test, UNCHANGED. A 120-epoch retrain scored worse (0.641)
   so the original weights were kept.

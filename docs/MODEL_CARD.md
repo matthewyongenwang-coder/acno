@@ -9,7 +9,7 @@ are, what they should not be used for, and where they fail.
 A free web app that gives a teenager a private first answer about their skin. The user
 takes or uploads a photo; three models run entirely in their browser and report skin
 type, acne type and a lesion count that maps to a severity band. A fourth step sends
-the resulting numbers, never the photo, to Claude to write a personalised guide.
+the resulting numbers, never the photo, to Gemini to write a personalised guide.
 
 Photos never leave the device. There is no upload, no account and no storage.
 

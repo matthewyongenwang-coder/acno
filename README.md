@@ -79,6 +79,19 @@ To enable it, set the `GEMINI_API_KEY` environment variable. Locally, put it in
 `web/.env.local`; on Vercel, add it under Project Settings, Environment
 Variables.
 
+Before writing the report the app opens a short optional intake form asking a few
+things a dermatologist would ask anyway: rough age range, where the person lives
+(climate and what is sold locally both change the advice), what they can spend,
+where they shop, and anything they want to add. None of it is stored, and every
+field can be left blank. It is sent to the model as context alongside the scan
+numbers, never with the photo.
+
+After the report there is a follow-up chat (`web/app/api/chat/route.ts`) so the
+person can ask about their own result rather than reading a fixed page. The chat
+is given the report it is discussing, plus the intake answers, and nothing else.
+Both routes bound their inputs and treat everything the user typed as data rather
+than as instructions to the model.
+
 ### Deploying on Vercel
 
 Import the GitHub repo in Vercel and set the project's Root Directory to `web`.
